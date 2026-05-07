@@ -66,7 +66,8 @@ firebase deploy --only firestore:rules
 | 0.6.0 | ✅ shipped | Host suggestions feed: live list, filter tabs (All / Favorites / Hidden / Used), search, favorite / hide / mark-used / delete |
 | 0.6.1 | ✅ shipped | Show page 2-col layout (Suggestions 3fr + Public code 1fr); mobile header stacks; cleanup |
 | 0.6.2 | ✅ shipped | Optional/required first-name collection per show + CSV export per show + dashboard "Past shows" section with downloads |
-| 0.7.0 | next | Full-screen performer view |
+| 0.7.0 | ✅ shipped | Full-screen performer view (auto-fit text, tap/keyboard nav, favorite + mark-used inline) |
+| 0.8.0 | next | QR code + ensemble share link with expiry |
 | 0.6.0 | | Suggestions dashboard (favorite/hide/used/search/filter) |
 | 0.7.0 | | Full-screen performer view |
 | 0.8.0 | | QR code + ensemble share link with expiry |
@@ -74,6 +75,15 @@ firebase deploy --only firestore:rules
 | 1.0.0 | | Polish, mobile QA, Lighthouse pass |
 
 ## Changelog
+
+### v0.7.0 — 2026-05-07
+- **`perform.html`** — full-screen performer view at `perform.html?code=<publicCode>`. Black background, suggestion text auto-fits to fill the screen via binary-search font-sizing. Built for projecting on a back wall, holding up a phone, or pushing to a TV.
+- **Navigation**: tap (or click, or `→`, or space) for next; `←` for previous; `Esc` to exit. `F` toggles favorite, `U` toggles used.
+- **Inline actions**: ★ favorite and ○ mark-used buttons in the top-right corner write back to Firestore — same as the dashboard, just bigger and quieter.
+- **Filter dropdown**: Active (default — not used, not hidden) / All / ★ Favorites / Not used. Sorts oldest-first so the host walks chronologically through the queue.
+- **Auto-fade chrome**: toolbar and keyboard hint fade out after 3s of no interaction so the suggestion text is the only thing on screen during the show. Move/tap to bring them back.
+- **Submitter name** appears as a small accent-green caps line above the suggestion when set, perfect for "that's from Sarah!" call-outs.
+- **`Perform` button** added to the show detail page hero, right next to Edit / Delete.
 
 ### v0.6.2 — 2026-05-07
 - **Per-show first-name collection** with three modes (`off` / `optional` / `required`). Set on the show edit dialog (and at creation). Default `off` so existing shows are unchanged. Audience page conditionally shows a name field above the suggestion textarea, labelled `(optional)` or `(required)` to match. Host dashboard shows the submitter's name in italics next to each suggestion card.
