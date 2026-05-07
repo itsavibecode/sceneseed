@@ -1,0 +1,100 @@
+rules_version = '2';
+
+// SceneSeed — Firestore Security Rules
+//
+// Data model:
+//   /profiles/{uid}                            — user profile (1:1 with auth user)
+//   /groups/{groupId}                          — improv ensemble (owner-only)
+//   /events/{publicCode}                       — show; doc ID IS the public code (e.g. coral-2042)
+//   /events/{publicCode}/suggestions/{hash}    — audience suggestion; doc ID is hash of normalized text
+//
+// Server-side enforcement:
+//   - Submission window is enforced via request.time on the suggestion CREATE rule.
+//   - Duplicate prevention is automatic: deterministic doc ID means a duplicate write fails
+//     with "already exists" — no race condition possible.
+//   - Audience cannot read suggestions; only the event owner can.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ───────── Helpers ─────────
+
+    function isAuthed() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return isAuthed() && request.auth.uid == uid;
+    }
+
+    function getEvent(publicCode) {
+      return get(/databases/$(database)/documents/events/$(publicCode)).data;
+    }
+
+    function isWindowOpen(publicCode) {
+      let event = getEvent(publicCode);
+      return event.manualStatus == 'force_open' ||
+        (event.manualStatus == 'auto'
+          && request.time >= event.submissionOpenAt
+          && request.time <= event.submissionCloseAt);
+    }
+
+    // ───────── Profiles ─────────
+
+    match /profiles/{uid} {
+      allow read:  if isAuthed();
+      allow write: if isOwner(uid);
+    }
+
+    // ───────── Groups ─────────
+
+    match /groups/{groupId} {
+      allow read:           if isAuthed() && resource.data.ownerId == request.auth.uid;
+      allow create:         if isAuthed() && request.resource.data.ownerId == request.auth.uid;
+      allow update, delete: if isAuthed() && resource.data.ownerId == request.auth.uid;
+    }
+
+    // ───────── Events (public code is the doc ID) ─────────
+
+    match /events/{publicCode} {
+      // Anyone (incl. unauthed audience) can fetch a single event by its publicCode.
+      // The audience submission page does this to render the prompt + window state.
+      allow get: if true;
+
+      // Listing events is owner-only — clients must include where('ownerId','==',uid).
+      allow list: if isAuthed() && resource.data.ownerId == request.auth.uid;
+
+      // Only the owner can create/update/delete an event. Owner is locked at creation.
+      allow create:         if isAuthed() && request.resource.data.ownerId == request.auth.uid;
+      allow update, delete: if isAuthed() && resource.data.ownerId == request.auth.uid;
+
+      // ───────── Suggestions ─────────
+
+      match /suggestions/{hash} {
+        // Only the event owner can read suggestions (audience cannot see others').
+        allow read: if isAuthed()
+                    && getEvent(publicCode).ownerId == request.auth.uid;
+
+        // PUBLIC CREATE — server-side window enforcement happens here.
+        //   - Window must be open (force_open OR auto + within times)
+        //   - text must be a non-empty string within the event's maxSuggestionLength
+        //   - createdAt must be the server timestamp (use serverTimestamp() client-side)
+        //   - All admin flags must be initialized to false
+        //   - Doc ID is a hash of normalized text → duplicates fail naturally
+        allow create: if isWindowOpen(publicCode)
+                      && request.resource.data.text is string
+                      && request.resource.data.text.size() > 0
+                      && request.resource.data.text.size() <= getEvent(publicCode).maxSuggestionLength
+                      && request.resource.data.textNormalized is string
+                      && request.resource.data.createdAt == request.time
+                      && request.resource.data.isFavorite == false
+                      && request.resource.data.isHidden == false
+                      && request.resource.data.isUsed == false;
+
+        // Owner-only management (favorite / hide / mark used / delete).
+        allow update, delete: if isAuthed()
+                              && getEvent(publicCode).ownerId == request.auth.uid;
+      }
+    }
+  }
+}

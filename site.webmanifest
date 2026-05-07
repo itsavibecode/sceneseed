@@ -1,0 +1,19 @@
+{
+  "name": "SceneSeed",
+  "short_name": "SceneSeed",
+  "description": "Audience suggestion collector for improv shows",
+  "start_url": "/sceneseed/",
+  "scope": "/sceneseed/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#ffffff",
+  "theme_color": "#0f172a",
+  "icons": [
+    {
+      "src": "favicon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any",
+      "purpose": "any maskable"
+    }
+  ]
+}

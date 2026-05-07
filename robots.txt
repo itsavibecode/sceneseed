@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /s/
+Disallow: /view/
+
+Sitemap: https://itsavibecode.github.io/sceneseed/sitemap.xml
