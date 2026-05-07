@@ -57,8 +57,8 @@ firebase deploy --only firestore:rules
 |---|---|---|
 | 0.1.0 | ✅ shipped | Landing page, favicon, SEO basics, GA4, privacy page, Firestore rules |
 | 0.2.0 | ✅ shipped | Auth (email link + Google), protected dashboard shell, profile auto-create |
-| 0.3.0 | next | Groups CRUD |
-| 0.4.0 | | Shows CRUD with public-code generation |
+| 0.3.0 | ✅ shipped | Groups CRUD — create, list (live), view, edit, delete |
+| 0.4.0 | next | Shows CRUD with public-code generation |
 | 0.5.0 | | Public audience submission page (`/s/?c=…`) with character counter |
 | 0.5.1 | | Profanity filter + dedupe + window enforcement audited end-to-end |
 | 0.6.0 | | Suggestions dashboard (favorite/hide/used/search/filter) |
@@ -68,6 +68,16 @@ firebase deploy --only firestore:rules
 | 1.0.0 | | Polish, mobile QA, Lighthouse pass |
 
 ## Changelog
+
+### v0.3.0 — 2026-05-07
+- Groups CRUD: create, list (live via `onSnapshot`), view detail, edit, delete
+- `groups.js` data layer — owner-scoped writes guarded by Firestore rules
+- Dashboard now shows your groups in a card grid with a "+ New group" modal
+- New `group.html` detail page with Edit + Delete modals (shows list placeholder for v0.4.0)
+- `<dialog>`-based modals with native backdrop, ESC close, focus management
+- Cleanup: removed "Source" link from page footers; tightened privacy policy
+  (dropped data-deletion section, removed Firestore/Firebase mentions to reduce
+  attack-surface signal — repo source still on GitHub for those who go looking)
 
 ### v0.2.0 — 2026-05-07
 - Auth: email-link passwordless sign-in (primary) + Google OAuth (secondary)

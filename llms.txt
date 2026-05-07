@@ -28,5 +28,5 @@
 ## Public code format
 Show codes follow `{color}-2###` — for example `coral-2042` or `teal-2007`. The "2" prefix is a decade marker for 2026–2029. Shorter color names are used first, longer color names later in the year-tier.
 
-## Repo
-Source: https://github.com/itsavibecode/sceneseed (MIT license)
+## License
+MIT

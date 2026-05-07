@@ -395,6 +395,167 @@ section .sub {
   color: var(--muted);
 }
 
+/* ───────── Groups list ───────── */
+.groups-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 14px;
+}
+.group-card {
+  display: block;
+  padding: 18px 20px;
+  border: 1px solid var(--hairline);
+  border-radius: 12px;
+  background: var(--bg);
+  color: var(--ink);
+  text-decoration: none;
+  border-bottom: 1px solid var(--hairline);
+  transition: border-color 0.15s, transform 0.05s;
+}
+.group-card:hover {
+  border-color: var(--accent);
+  color: var(--ink);
+}
+.group-card:active { transform: translateY(1px); }
+.group-card h3 {
+  font-family: var(--display);
+  font-size: 19px;
+  font-weight: 700;
+  margin: 0 0 4px;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+.group-card p {
+  font-size: 14px;
+  color: var(--muted);
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* ───────── Group detail head ───────── */
+.breadcrumb {
+  font-size: 13px;
+  color: var(--muted);
+  margin: 0 0 16px;
+}
+.breadcrumb a {
+  color: var(--muted);
+  border: none;
+}
+.breadcrumb a:hover { color: var(--ink); }
+.group-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.group-head h1 {
+  font-family: var(--display);
+  font-size: clamp(32px, 4vw, 44px);
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  margin: 0;
+}
+.group-head .lede {
+  margin-top: 6px;
+  font-size: 16px;
+  color: var(--muted);
+  max-width: 520px;
+}
+.group-actions {
+  display: inline-flex;
+  gap: 8px;
+}
+
+.btn.danger {
+  background: #b91c1c;
+  border-color: #b91c1c;
+  color: #fff;
+}
+.btn.danger:hover { opacity: 0.88; color: #fff; }
+
+/* ───────── Dialog (modal) ───────── */
+dialog.dialog {
+  border: none;
+  border-radius: 14px;
+  padding: 0;
+  max-width: 460px;
+  width: calc(100% - 32px);
+  background: var(--bg);
+  color: var(--ink);
+  box-shadow: 0 16px 48px rgba(15, 23, 42, 0.25);
+}
+dialog.dialog::backdrop {
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(2px);
+}
+.dialog-form {
+  padding: 28px 28px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.dialog-form h2 {
+  font-family: var(--display);
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+.dialog-sub {
+  margin: -6px 0 4px;
+  color: var(--muted);
+  font-size: 14px;
+}
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.field > span {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.field > span em {
+  font-style: normal;
+  font-weight: 400;
+  color: var(--muted);
+  text-transform: none;
+  letter-spacing: 0;
+}
+.field input[type="text"],
+.field textarea {
+  font: inherit;
+  font-size: 16px;
+  padding: 10px 12px;
+  border: 1px solid var(--hairline);
+  border-radius: 10px;
+  background: var(--bg);
+  color: var(--ink);
+  width: 100%;
+  resize: vertical;
+}
+.field input[type="text"]:focus,
+.field textarea:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+  border-color: transparent;
+}
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 4px;
+}
+.dialog-actions .btn { padding: 10px 16px; }
+
 /* ───────── Privacy / prose pages ───────── */
 .prose {
   max-width: 720px;

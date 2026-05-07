@@ -6,7 +6,7 @@
 
 <title>Dashboard — SceneSeed</title>
 <meta name="description" content="Manage your improv groups, shows, and suggestions.">
-<meta name="version" content="0.2.0">
+<meta name="version" content="0.3.0">
 <meta name="theme-color" content="#0f172a">
 <meta name="robots" content="noindex">
 
@@ -54,20 +54,18 @@
   <section class="dash-section">
     <div class="dash-section-head">
       <h2>Your groups</h2>
-      <button type="button" class="btn" disabled title="Group creation lands in v0.3.0">+ New group</button>
+      <button type="button" id="new-group-btn" class="btn">+ New group</button>
     </div>
-    <div class="dash-empty">
-      <p>No groups yet. Group creation ships in <strong>v0.3.0</strong> — coming next.</p>
+    <div id="groups-loading" class="dash-empty"><p>Loading…</p></div>
+    <div id="groups-empty" class="dash-empty" hidden>
+      <p>No groups yet. Click <strong>+ New group</strong> to create your first improv ensemble.</p>
     </div>
+    <div id="groups-list" class="groups-list" hidden></div>
   </section>
 
   <section class="dash-section">
     <h2>What's coming</h2>
     <ol class="steps">
-      <li>
-        <h3>v0.3.0 · Groups</h3>
-        <p>Create improv ensembles. Name, description, owner-only access via Firestore rules.</p>
-      </li>
       <li>
         <h3>v0.4.0 · Shows</h3>
         <p>Add shows under a group. Auto-generate the public code (<code>color-2###</code>) on creation.</p>
@@ -76,9 +74,32 @@
         <h3>v0.5.0 · Audience submission</h3>
         <p>Public <code>/s/?c=…</code> page with character counter. Submission window enforced server-side.</p>
       </li>
+      <li>
+        <h3>v0.6.0 · Suggestions dashboard</h3>
+        <p>Live list of incoming suggestions. Favorite, hide, search, mark as used.</p>
+      </li>
     </ol>
   </section>
 </main>
+
+<dialog id="new-group-dialog" class="dialog" aria-labelledby="ng-title">
+  <form id="new-group-form" class="dialog-form" novalidate>
+    <h2 id="ng-title">New group</h2>
+    <p class="dialog-sub">Give your improv ensemble a name. You can edit it later.</p>
+    <label class="field">
+      <span>Name</span>
+      <input type="text" name="name" required maxlength="80" autocomplete="off" placeholder="The Late Bloomers">
+    </label>
+    <label class="field">
+      <span>Description <em>(optional)</em></span>
+      <textarea name="description" maxlength="500" rows="3" placeholder="Short-form improv troupe out of Chicago."></textarea>
+    </label>
+    <div class="dialog-actions">
+      <button type="button" class="btn secondary" data-close>Cancel</button>
+      <button type="submit" class="btn">Create</button>
+    </div>
+  </form>
+</dialog>
 
 <div id="dash-loading" class="dash-loading">
   <p>Checking sign-in…</p>
@@ -89,14 +110,14 @@
     <div>
       <a href="/sceneseed/">Home</a>
       <a href="privacy.html">Privacy</a>
-      <a href="https://github.com/itsavibecode/sceneseed">Source</a>
     </div>
-    <div>SceneSeed v0.2.0 · MIT</div>
+    <div>SceneSeed v0.3.0 · MIT</div>
   </div>
 </footer>
 
 <script type="module">
 import { onAuth, signOut } from './auth.js';
+import { listGroups, createGroup } from './groups.js';
 
 const dashMain = document.getElementById('dash-main');
 const dashLoading = document.getElementById('dash-loading');
@@ -105,12 +126,45 @@ const userEmail = document.getElementById('user-email');
 const welcomeName = document.getElementById('welcome-name');
 const signoutBtn = document.getElementById('signout-btn');
 
+const groupsList = document.getElementById('groups-list');
+const groupsEmpty = document.getElementById('groups-empty');
+const groupsLoading = document.getElementById('groups-loading');
+const newGroupBtn = document.getElementById('new-group-btn');
+const dialog = document.getElementById('new-group-dialog');
+const form = document.getElementById('new-group-form');
+
+let unsubGroups = null;
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, (c) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[c]));
+}
+
+function renderGroups(groups) {
+  groupsLoading.hidden = true;
+  if (groups.length === 0) {
+    groupsEmpty.hidden = false;
+    groupsList.hidden = true;
+    groupsList.innerHTML = '';
+    return;
+  }
+  groupsEmpty.hidden = true;
+  groupsList.hidden = false;
+  groupsList.innerHTML = groups.map((g) => `
+    <a class="group-card" href="group.html?id=${encodeURIComponent(g.id)}">
+      <h3>${escapeHtml(g.name)}</h3>
+      ${g.description ? `<p>${escapeHtml(g.description)}</p>` : ''}
+    </a>
+  `).join('');
+}
+
 onAuth((user) => {
+  if (unsubGroups) { unsubGroups(); unsubGroups = null; }
   if (!user) {
     window.location.replace('signin.html');
     return;
   }
-  // Reveal the dashboard once we know who's here.
   dashLoading.hidden = true;
   dashMain.hidden = false;
   userNav.hidden = false;
@@ -118,11 +172,39 @@ onAuth((user) => {
   if (user.displayName) {
     welcomeName.textContent = `, ${user.displayName.split(' ')[0]}`;
   }
+  unsubGroups = listGroups(renderGroups);
 });
 
 signoutBtn.addEventListener('click', async () => {
+  if (unsubGroups) { unsubGroups(); unsubGroups = null; }
   await signOut();
   window.location.replace('./');
+});
+
+newGroupBtn.addEventListener('click', () => {
+  form.reset();
+  dialog.showModal();
+  form.elements.name.focus();
+});
+
+dialog.querySelector('[data-close]').addEventListener('click', () => dialog.close());
+
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const name = form.elements.name.value.trim();
+  const description = form.elements.description.value.trim();
+  if (!name) return;
+  const submitBtn = form.querySelector('button[type="submit"]');
+  submitBtn.disabled = true;
+  try {
+    await createGroup({ name, description });
+    dialog.close();
+  } catch (err) {
+    alert('Could not create group: ' + (err.message || err));
+    console.error(err);
+  } finally {
+    submitBtn.disabled = false;
+  }
 });
 </script>
 </body>
