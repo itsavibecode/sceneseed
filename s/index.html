@@ -6,7 +6,7 @@
 
 <title>Suggest a scene — SceneSeed</title>
 <meta name="description" content="Submit a one-line suggestion to the show.">
-<meta name="version" content="0.6.1">
+<meta name="version" content="0.6.2">
 <meta name="theme-color" content="#0f172a">
 <meta name="robots" content="noindex">
 
@@ -42,6 +42,10 @@
     <h1 id="show-headline" class="aud-headline">…</h1>
 
     <form id="aud-form" novalidate>
+      <div id="aud-name-row" class="aud-name-row" hidden>
+        <label for="aud-name">First name <span id="aud-name-hint" class="aud-name-hint">(optional)</span></label>
+        <input id="aud-name" name="name" type="text" autocomplete="given-name" maxlength="50" placeholder="Your first name">
+      </div>
       <label for="aud-text" class="visually-hidden">Your suggestion</label>
       <textarea id="aud-text" name="text" rows="3" required placeholder="Type your suggestion…" autocomplete="off" autocapitalize="sentences" maxlength="140"></textarea>
       <div class="aud-counter">
@@ -114,6 +118,9 @@ const countdownEl = document.getElementById('aud-countdown');
 const messageEl   = document.getElementById('aud-message');
 const successEl   = document.getElementById('aud-success');
 const againBtn    = document.getElementById('aud-again');
+const nameRow     = document.getElementById('aud-name-row');
+const nameInput   = document.getElementById('aud-name');
+const nameHint    = document.getElementById('aud-name-hint');
 
 let event = null;
 let tickHandle = null;
@@ -235,6 +242,7 @@ function showFormAgain() {
   messageEl.hidden = true;
   form.hidden = false;
   textArea.value = '';
+  // Don't clear the name — let repeat submitters keep their handle.
   updateCounter();
   textArea.focus();
 }
@@ -277,6 +285,17 @@ async function load() {
     maxEl.textContent = String(max);
     updateCounter();
 
+    // Name field: show when host opts into 'optional' or 'required' collection.
+    const mode = event.nameCollection || 'off';
+    if (mode === 'off') {
+      nameRow.hidden = true;
+      nameInput.required = false;
+    } else {
+      nameRow.hidden = false;
+      nameInput.required = (mode === 'required');
+      nameHint.textContent = mode === 'required' ? '(required)' : '(optional)';
+    }
+
     loading.hidden = true;
     main.hidden = false;
     refreshState();
@@ -306,11 +325,19 @@ form.addEventListener('submit', async (e) => {
   const text = textArea.value.trim();
   if (!text) return;
 
+  // Client-side name validation when required (server rule enforces it too).
+  const name = (nameInput.value || '').trim();
+  if (event.nameCollection === 'required' && !name) {
+    setMessage('A first name is required for this show.', 'error');
+    nameInput.focus();
+    return;
+  }
+
   submitBtn.disabled = true;
   const wasLabel = submitBtn.textContent;
   submitBtn.textContent = 'Sending…';
   try {
-    await submitSuggestion(event.publicCode, text);
+    await submitSuggestion(event.publicCode, text, name);
     showSuccess();
   } catch (err) {
     if (err.code === 'duplicate') {

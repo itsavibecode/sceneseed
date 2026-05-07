@@ -959,6 +959,101 @@ dialog.dialog-lg .dialog-form {
   .sug-card.is-favorite          { background: rgba(250, 204, 21, 0.06); }
 }
 
+/* Submitter chip on a suggestion card (host-side). */
+.sug-submitter {
+  display: inline-block;
+  font-style: italic;
+  font-weight: 600;
+  color: var(--ink);
+  margin-right: 8px;
+}
+
+/* Download-CSV link in suggestions toolbar. */
+.sug-download {
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+/* Audience name field above the textarea. */
+.aud-name-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+.aud-name-row label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.aud-name-row .aud-name-hint {
+  font-style: normal;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--muted);
+  margin-left: 4px;
+}
+.aud-name-row input {
+  font: inherit;
+  font-size: 16px;
+  padding: 12px 14px;
+  border: 1px solid var(--hairline);
+  border-radius: 12px;
+  background: var(--bg);
+  color: var(--ink);
+}
+.aud-name-row input:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+  border-color: transparent;
+}
+
+/* Past shows list on dashboard. */
+.past-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.past-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 16px;
+  border: 1px solid var(--hairline);
+  border-radius: 12px;
+  background: var(--bg);
+  flex-wrap: wrap;
+}
+.past-row-info { flex: 1 1 240px; min-width: 0; }
+.past-row h3 {
+  font-family: var(--display);
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  margin: 0;
+  color: var(--ink);
+}
+.past-row-meta {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+.past-row-meta code {
+  background: var(--bg-soft);
+  padding: 2px 6px;
+  border-radius: 6px;
+  font-size: 12px;
+}
+.past-row-actions {
+  display: inline-flex;
+  gap: 14px;
+  align-items: center;
+}
+
 /* ───────── Audience submission page ───────── */
 body.audience { background: var(--bg-soft); }
 .aud-wrap {

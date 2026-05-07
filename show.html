@@ -6,7 +6,7 @@
 
 <title>Show — SceneSeed</title>
 <meta name="description" content="Manage an improv show on SceneSeed.">
-<meta name="version" content="0.6.1">
+<meta name="version" content="0.6.2">
 <meta name="theme-color" content="#0f172a">
 <meta name="robots" content="noindex">
 
@@ -76,6 +76,7 @@
           <button type="button" class="sug-tab" data-filter="used" role="tab" aria-selected="false">Used <span class="sug-tab-n" data-count="used">0</span></button>
         </div>
         <input type="search" id="sug-search" class="sug-search" placeholder="Search suggestions…" autocomplete="off" aria-label="Search suggestions">
+        <button type="button" id="sug-download" class="link-btn sug-download" title="Download all suggestions as CSV">Download CSV</button>
       </div>
 
       <div id="sug-loading" class="dash-empty"><p>Loading…</p></div>
@@ -186,6 +187,15 @@
       </label>
     </div>
 
+    <label class="field">
+      <span>Ask audience for a first name</span>
+      <select name="nameCollection">
+        <option value="off">Off — anonymous submissions only</option>
+        <option value="optional">Optional — audience can choose</option>
+        <option value="required">Required — submission needs a name</option>
+      </select>
+    </label>
+
     <label class="field-check">
       <input type="checkbox" name="profanityFilterEnabled">
       <span>Filter profanity & hate terms</span>
@@ -219,14 +229,14 @@
       <a href="/sceneseed/">Home</a>
       <a href="privacy.html">Privacy</a>
     </div>
-    <div>SceneSeed v0.6.1 · MIT</div>
+    <div>SceneSeed v0.6.2 · MIT</div>
   </div>
 </footer>
 
 <script type="module">
 import { onAuth, signOut } from './auth.js';
 import { getShow, updateShow, deleteShow, toInputValue, windowState } from './shows.js';
-import { listSuggestions, setSuggestionFlag, deleteSuggestion } from './host-suggestions.js';
+import { listSuggestions, setSuggestionFlag, deleteSuggestion, triggerCsvDownload } from './host-suggestions.js';
 
 const code = new URLSearchParams(window.location.search).get('code');
 
@@ -276,6 +286,7 @@ const sugList = document.getElementById('sug-list');
 const sugSearch = document.getElementById('sug-search');
 const sugSummary = document.getElementById('sug-summary');
 const sugTabs = document.querySelectorAll('.sug-tab');
+const sugDownload = document.getElementById('sug-download');
 
 function showError(msg) {
   loading.hidden = true;
@@ -313,11 +324,14 @@ function renderCard(s) {
   if (s.isFavorite) cls.push('is-favorite');
   if (s.isHidden) cls.push('is-hidden');
   if (s.isUsed) cls.push('is-used');
+  const submitterChip = s.submitterName
+    ? `<span class="sug-submitter">${escHtml(s.submitterName)}</span>`
+    : '';
   return `
     <article class="${cls.join(' ')}" data-id="${escHtml(s.id)}">
       <div class="sug-text">${escHtml(s.text)}</div>
       <div class="sug-meta">
-        <span class="sug-time">${escHtml(time)}</span>
+        <span class="sug-time">${submitterChip}${escHtml(time)}</span>
         <div class="sug-actions">
           <button type="button" class="sug-btn sug-fav"  data-action="favorite" title="${s.isFavorite ? 'Unfavorite' : 'Favorite'}" aria-label="${s.isFavorite ? 'Unfavorite' : 'Favorite'}" aria-pressed="${!!s.isFavorite}">${s.isFavorite ? '★' : '☆'}</button>
           <button type="button" class="sug-btn sug-hide" data-action="hidden"   title="${s.isHidden   ? 'Unhide'     : 'Hide'}"      aria-label="${s.isHidden   ? 'Unhide'     : 'Hide'}"      aria-pressed="${!!s.isHidden}">${s.isHidden ? '↺' : '⊘'}</button>
@@ -398,6 +412,12 @@ sugTabs.forEach((tab) => {
 sugSearch.addEventListener('input', () => {
   searchTerm = sugSearch.value.trim();
   renderSuggestions();
+});
+
+// ── CSV download (helpers shared via host-suggestions.js) ─────
+sugDownload.addEventListener('click', () => {
+  if (!currentShow) return;
+  triggerCsvDownload(currentShow, allSuggestions);
 });
 
 sugList.addEventListener('click', async (e) => {
@@ -539,6 +559,7 @@ editBtn.addEventListener('click', () => {
   f.submissionCloseAt.value = toInputValue(currentShow.submissionCloseAt);
   f.maxSuggestionLength.value = currentShow.maxSuggestionLength || 140;
   f.manualStatus.value = currentShow.manualStatus || 'auto';
+  f.nameCollection.value = currentShow.nameCollection || 'off';
   f.profanityFilterEnabled.checked = currentShow.profanityFilterEnabled !== false;
   f.duplicateDetectionEnabled.checked = currentShow.duplicateDetectionEnabled !== false;
   editDialog.showModal();
@@ -563,6 +584,7 @@ editForm.addEventListener('submit', async (e) => {
       submissionCloseAt: f.submissionCloseAt.value,
       maxSuggestionLength: f.maxSuggestionLength.value,
       manualStatus: f.manualStatus.value,
+      nameCollection: f.nameCollection.value,
       profanityFilterEnabled: f.profanityFilterEnabled.checked,
       duplicateDetectionEnabled: f.duplicateDetectionEnabled.checked
     });

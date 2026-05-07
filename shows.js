@@ -13,7 +13,7 @@
 
 import { auth, db } from './firebase-config.js';
 import {
-  collection, doc, getDoc, setDoc, updateDoc, deleteDoc,
+  collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc,
   query, where, onSnapshot, serverTimestamp, Timestamp
 } from 'https://www.gstatic.com/firebasejs/12.12.1/firebase-firestore.js';
 
@@ -83,6 +83,11 @@ function userTimezone() {
   }
 }
 
+const VALID_NAME_MODES = new Set(['off', 'optional', 'required']);
+function validNameMode(v) {
+  return VALID_NAME_MODES.has(v) ? v : 'off';
+}
+
 function toTimestamp(input) {
   if (!input) return null;
   if (input instanceof Timestamp) return input;
@@ -124,6 +129,7 @@ export async function createShow(groupId, fields) {
     maxSuggestionLength: Number(fields.maxSuggestionLength) || 140,
     profanityFilterEnabled: fields.profanityFilterEnabled !== false,
     duplicateDetectionEnabled: fields.duplicateDetectionEnabled !== false,
+    nameCollection: validNameMode(fields.nameCollection),
     createdAt: serverTimestamp()
   };
 
@@ -181,12 +187,25 @@ export async function updateShow(publicCode, fields) {
   if (fields.maxSuggestionLength !== undefined) updates.maxSuggestionLength = Number(fields.maxSuggestionLength) || 140;
   if (fields.profanityFilterEnabled !== undefined) updates.profanityFilterEnabled = !!fields.profanityFilterEnabled;
   if (fields.duplicateDetectionEnabled !== undefined) updates.duplicateDetectionEnabled = !!fields.duplicateDetectionEnabled;
+  if (fields.nameCollection !== undefined) updates.nameCollection = validNameMode(fields.nameCollection);
   await updateDoc(doc(db, 'events', publicCode), updates);
 }
 
 export async function deleteShow(publicCode) {
   // v0.6.0+: also cascade-delete suggestions subcollection (or rely on admin tooling).
   await deleteDoc(doc(db, 'events', publicCode));
+}
+
+// One-shot fetch of every show owned by the current user (across groups).
+// Used by the dashboard "Past shows" section. Sort applied by caller.
+export async function getAllShowsForUser() {
+  const user = requireUser();
+  const q = query(
+    collection(db, 'events'),
+    where('ownerId', '==', user.uid)
+  );
+  const snap = await getDocs(q);
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 }
 
 // ────────────────────────── UI helpers (exported for views) ──────────────────────────

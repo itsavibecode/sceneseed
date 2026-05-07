@@ -85,10 +85,12 @@ service cloud.firestore {
                     && getEvent(publicCode).ownerId == request.auth.uid;
 
         // PUBLIC CREATE — server-side window enforcement happens here.
-        //   - Window must be open (force_open OR auto + within times)
+        //   - Window must be open (force_open OR auto + within times + cushion)
         //   - text must be a non-empty string within the event's maxSuggestionLength
         //   - createdAt must be the server timestamp (use serverTimestamp() client-side)
         //   - All admin flags must be initialized to false
+        //   - submitterName must be a string at most 50 chars; if the event's
+        //     nameCollection is 'required', it must be non-empty
         //   - Doc ID is a hash of normalized text → duplicates fail naturally
         allow create: if isWindowOpen(publicCode)
                       && request.resource.data.text is string
@@ -98,7 +100,11 @@ service cloud.firestore {
                       && request.resource.data.createdAt == request.time
                       && request.resource.data.isFavorite == false
                       && request.resource.data.isHidden == false
-                      && request.resource.data.isUsed == false;
+                      && request.resource.data.isUsed == false
+                      && request.resource.data.submitterName is string
+                      && request.resource.data.submitterName.size() <= 50
+                      && (getEvent(publicCode).get('nameCollection', 'off') != 'required'
+                          || request.resource.data.submitterName.size() > 0);
 
         // Owner-only management (favorite / hide / mark used / delete).
         allow update, delete: if isAuthed()

@@ -65,6 +65,7 @@ firebase deploy --only firestore:rules
 | 0.5.2 | ✅ shipped | Cushion direction flipped (+3s grace AFTER close, not before); seconds shown in hour countdowns; matching server grace |
 | 0.6.0 | ✅ shipped | Host suggestions feed: live list, filter tabs (All / Favorites / Hidden / Used), search, favorite / hide / mark-used / delete |
 | 0.6.1 | ✅ shipped | Show page 2-col layout (Suggestions 3fr + Public code 1fr); mobile header stacks; cleanup |
+| 0.6.2 | ✅ shipped | Optional/required first-name collection per show + CSV export per show + dashboard "Past shows" section with downloads |
 | 0.7.0 | next | Full-screen performer view |
 | 0.6.0 | | Suggestions dashboard (favorite/hide/used/search/filter) |
 | 0.7.0 | | Full-screen performer view |
@@ -73,6 +74,13 @@ firebase deploy --only firestore:rules
 | 1.0.0 | | Polish, mobile QA, Lighthouse pass |
 
 ## Changelog
+
+### v0.6.2 — 2026-05-07
+- **Per-show first-name collection** with three modes (`off` / `optional` / `required`). Set on the show edit dialog (and at creation). Default `off` so existing shows are unchanged. Audience page conditionally shows a name field above the suggestion textarea, labelled `(optional)` or `(required)` to match. Host dashboard shows the submitter's name in italics next to each suggestion card.
+- **`firestore.rules` updated** to validate `submitterName`: must be a string ≤ 50 chars, and non-empty if the event's `nameCollection == 'required'`. Existing shows without the field are treated as `'off'` via `event.get('nameCollection', 'off')`. **Re-publish required.**
+- **Per-show CSV download** — new "Download CSV" button in the suggestions toolbar exports `Time, Name, Suggestion, Favorite, Hidden, Used` columns. Excel-friendly UTF-8 BOM, CRLF line endings. Filename includes the public code + slugified title + show date.
+- **Dashboard "Past shows" section** lists every show whose `showEndsAt` has passed, sorted newest-first across all your groups. Each row has a one-click `Download CSV` plus an `Open` link to revisit the show page. Closest thing to "automatic" without a separate cron worker — your archive is one click away from the dashboard.
+- **Privacy policy refreshed** to reflect that names are collected only when a host opts in, and that the field is shown to the host only.
 
 ### v0.6.1 — 2026-05-07
 - **Show page layout reshuffled.** Suggestions move up to right under the show hero. Suggestions (3fr) and Public code (1fr) live side-by-side in a 2-column grid on desktop (≥900px); on mobile they stack with Suggestions on top. Public code card on desktop is sticky so it stays visible while you scroll a long suggestions list.

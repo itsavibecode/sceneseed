@@ -6,7 +6,7 @@
 
 <title>Dashboard — SceneSeed</title>
 <meta name="description" content="Manage your improv groups, shows, and suggestions.">
-<meta name="version" content="0.6.1">
+<meta name="version" content="0.6.2">
 <meta name="theme-color" content="#0f172a">
 <meta name="robots" content="noindex">
 
@@ -64,19 +64,31 @@
   </section>
 
   <section class="dash-section">
+    <div class="dash-section-head">
+      <h2>Past shows</h2>
+      <span id="past-summary" class="dialog-sub"></span>
+    </div>
+    <div id="past-loading" class="dash-empty"><p>Loading…</p></div>
+    <div id="past-empty" class="dash-empty" hidden>
+      <p>No past shows yet. Once a show finishes (its end time passes), it'll appear here so you can grab the suggestions as a CSV.</p>
+    </div>
+    <div id="past-list" class="past-list" hidden></div>
+  </section>
+
+  <section class="dash-section">
     <h2>What's coming</h2>
     <ol class="steps">
       <li>
-        <h3>v0.4.0 · Shows</h3>
-        <p>Add shows under a group. Auto-generate the public code (<code>color-2###</code>) on creation.</p>
+        <h3>v0.7.0 · Performer view</h3>
+        <p>Full-screen big-text display of one suggestion at a time, sized for projecting on a wall.</p>
       </li>
       <li>
-        <h3>v0.5.0 · Audience submission</h3>
-        <p>Public <code>/s/?c=…</code> page with character counter. Submission window enforced server-side.</p>
+        <h3>v0.8.0 · QR + ensemble share</h3>
+        <p>Downloadable QR code for each show + a separate read-only share link for ensemble members with auto-expiry.</p>
       </li>
       <li>
-        <h3>v0.6.0 · Suggestions dashboard</h3>
-        <p>Live list of incoming suggestions. Favorite, hide, search, mark as used.</p>
+        <h3>v0.9.0 · Post-show summary</h3>
+        <p>Auto-built recap with favorites and used suggestions, plus PNG export to share.</p>
       </li>
     </ol>
   </section>
@@ -111,13 +123,15 @@
       <a href="/sceneseed/">Home</a>
       <a href="privacy.html">Privacy</a>
     </div>
-    <div>SceneSeed v0.6.1 · MIT</div>
+    <div>SceneSeed v0.6.2 · MIT</div>
   </div>
 </footer>
 
 <script type="module">
 import { onAuth, signOut } from './auth.js';
 import { listGroups, createGroup } from './groups.js';
+import { getAllShowsForUser } from './shows.js';
+import { getAllSuggestions, triggerCsvDownload } from './host-suggestions.js';
 
 const dashMain = document.getElementById('dash-main');
 const dashLoading = document.getElementById('dash-loading');
@@ -132,6 +146,11 @@ const groupsLoading = document.getElementById('groups-loading');
 const newGroupBtn = document.getElementById('new-group-btn');
 const dialog = document.getElementById('new-group-dialog');
 const form = document.getElementById('new-group-form');
+
+const pastList = document.getElementById('past-list');
+const pastEmpty = document.getElementById('past-empty');
+const pastLoading = document.getElementById('past-loading');
+const pastSummary = document.getElementById('past-summary');
 
 let unsubGroups = null;
 
@@ -173,6 +192,98 @@ onAuth((user) => {
     welcomeName.textContent = `, ${user.displayName.split(' ')[0]}`;
   }
   unsubGroups = listGroups(renderGroups);
+  loadPastShows();
+});
+
+// ── Past shows section ──────────────────────────────────
+async function loadPastShows() {
+  pastLoading.hidden = false;
+  pastEmpty.hidden = true;
+  pastList.hidden = true;
+  pastList.innerHTML = '';
+  try {
+    const all = await getAllShowsForUser();
+    const now = Date.now();
+    const past = all
+      .filter((s) => {
+        const end = s.showEndsAt?.toMillis?.();
+        return end && end < now;
+      })
+      .sort((a, b) => {
+        const aT = a.showStartsAt?.toMillis?.() ?? 0;
+        const bT = b.showStartsAt?.toMillis?.() ?? 0;
+        return bT - aT;
+      });
+    pastLoading.hidden = true;
+    if (past.length === 0) {
+      pastEmpty.hidden = false;
+      pastSummary.textContent = '';
+      return;
+    }
+    pastList.hidden = false;
+    pastSummary.textContent = `${past.length} past show${past.length === 1 ? '' : 's'}`;
+    pastList.innerHTML = past.map(renderPastRow).join('');
+  } catch (err) {
+    console.error('Failed to load past shows:', err);
+    pastLoading.hidden = true;
+    pastEmpty.hidden = false;
+    pastEmpty.querySelector('p').textContent = 'Could not load past shows. Try refreshing.';
+  }
+}
+
+function fmtPastDate(ts) {
+  const d = ts?.toDate?.();
+  if (!d) return '';
+  return d.toLocaleString(undefined, {
+    weekday: 'short', month: 'short', day: 'numeric',
+    hour: 'numeric', minute: '2-digit'
+  });
+}
+
+function escAttr(s) {
+  return String(s ?? '').replace(/[&<>"']/g, (c) => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  }[c]));
+}
+
+function renderPastRow(show) {
+  const date = fmtPastDate(show.showStartsAt);
+  const venue = show.venueName ? ` · ${escAttr(show.venueName)}` : '';
+  return `
+    <div class="past-row" data-code="${escAttr(show.publicCode)}">
+      <div class="past-row-info">
+        <h3>${escAttr(show.title || '(untitled show)')}</h3>
+        <p class="past-row-meta">${escAttr(date)}${venue} · <code>${escAttr(show.publicCode)}</code></p>
+      </div>
+      <div class="past-row-actions">
+        <a class="link-btn" href="show.html?code=${encodeURIComponent(show.publicCode)}">Open</a>
+        <button type="button" class="link-btn past-download" data-code="${escAttr(show.publicCode)}">Download CSV</button>
+      </div>
+    </div>
+  `;
+}
+
+pastList.addEventListener('click', async (e) => {
+  const btn = e.target.closest('.past-download');
+  if (!btn) return;
+  const code = btn.dataset.code;
+  if (!code) return;
+  btn.disabled = true;
+  const wasLabel = btn.textContent;
+  btn.textContent = 'Preparing…';
+  try {
+    const all = await getAllShowsForUser();
+    const show = all.find((s) => s.publicCode === code);
+    if (!show) throw new Error('Show not found');
+    const sugs = await getAllSuggestions(code);
+    triggerCsvDownload(show, sugs);
+  } catch (err) {
+    alert(`Couldn't download: ${err.message || err}`);
+    console.error(err);
+  } finally {
+    btn.textContent = wasLabel;
+    btn.disabled = false;
+  }
 });
 
 signoutBtn.addEventListener('click', async () => {

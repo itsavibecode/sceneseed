@@ -39,9 +39,12 @@ export async function hashText(text) {
 }
 
 // Submit a suggestion. Throws an Error with .code === 'duplicate' on dup,
-// .code === 'closed' on an obvious window violation (preview only), or
-// .code === 'denied' on any other rule rejection.
-export async function submitSuggestion(publicCode, rawText) {
+// .code === 'denied' on any other rule rejection, .code === 'empty' on no text.
+//
+// Audience names: when the show's nameCollection is 'optional' or 'required',
+// the audience page passes a submitterName. We always write the field as a
+// string (empty if not provided) so the rule can validate it uniformly.
+export async function submitSuggestion(publicCode, rawText, rawName = '') {
   const text = String(rawText || '').trim();
   if (!text) {
     const e = new Error('Empty suggestion');
@@ -54,6 +57,10 @@ export async function submitSuggestion(publicCode, rawText) {
     e.code = 'empty';
     throw e;
   }
+
+  // Names are kept short and stripped of leading/trailing whitespace; the
+  // rule caps total length at 50 chars but we trim earlier to be friendly.
+  const submitterName = String(rawName || '').trim().slice(0, 50);
 
   const hash = await hashText(textNormalized);
   const ref = doc(db, 'events', publicCode, 'suggestions', hash);
@@ -75,6 +82,7 @@ export async function submitSuggestion(publicCode, rawText) {
     await setDoc(ref, {
       text,
       textNormalized,
+      submitterName,
       isFavorite: false,
       isHidden: false,
       isUsed: false,
@@ -82,8 +90,8 @@ export async function submitSuggestion(publicCode, rawText) {
     });
   } catch (err) {
     // Firestore returns "permission-denied" for any rule failure (window closed,
-    // length over limit, profanity, etc). We surface a single generic state and
-    // let the UI tell the user the window state if relevant.
+    // length over limit, name required but empty, etc). We surface a single
+    // generic state and let the UI tell the user the window state if relevant.
     const e = new Error(err.message || 'Submission rejected');
     e.code = 'denied';
     e.cause = err;
