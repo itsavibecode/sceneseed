@@ -56,8 +56,8 @@ firebase deploy --only firestore:rules
 | Version | Status | What lands |
 |---|---|---|
 | 0.1.0 | ✅ shipped | Landing page, favicon, SEO basics, GA4, privacy page, Firestore rules |
-| 0.2.0 | next | Auth (email link + Google), protected dashboard shell |
-| 0.3.0 | | Groups CRUD |
+| 0.2.0 | ✅ shipped | Auth (email link + Google), protected dashboard shell, profile auto-create |
+| 0.3.0 | next | Groups CRUD |
 | 0.4.0 | | Shows CRUD with public-code generation |
 | 0.5.0 | | Public audience submission page (`/s/?c=…`) with character counter |
 | 0.5.1 | | Profanity filter + dedupe + window enforcement audited end-to-end |
@@ -68,6 +68,13 @@ firebase deploy --only firestore:rules
 | 1.0.0 | | Polish, mobile QA, Lighthouse pass |
 
 ## Changelog
+
+### v0.2.0 — 2026-05-07
+- Auth: email-link passwordless sign-in (primary) + Google OAuth (secondary)
+- `signin.html` with two-option form, magic-link return handler, status messaging
+- `dashboard.html` with auth gate, user header, sign-out, and empty state
+- `auth.js` shared helpers — every sign-in funnels through `ensureProfile()` to create `/profiles/{uid}` on first login
+- Landing-page CTA now reflects auth state ("Sign in to host a show" → "Open dashboard")
 
 ### v0.1.0 — 2026-05-07
 - Initial scaffold: landing page, privacy page, 404 page, favicon (P5e Line Art), OG image

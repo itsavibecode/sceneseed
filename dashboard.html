@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Dashboard — SceneSeed</title>
+<meta name="description" content="Manage your improv groups, shows, and suggestions.">
+<meta name="version" content="0.2.0">
+<meta name="theme-color" content="#0f172a">
+<meta name="robots" content="noindex">
+
+<link rel="canonical" href="https://itsavibecode.github.io/sceneseed/dashboard.html">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="manifest" href="site.webmanifest">
+
+<link rel="stylesheet" href="styles.css">
+
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-D04TM51CVE"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-D04TM51CVE');
+</script>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="container">
+    <a class="brand" href="/sceneseed/" aria-label="SceneSeed home">
+      <svg viewBox="0 0 100 100" aria-hidden="true">
+        <path d="M 25 55 Q 35 30 60 25 Q 82 23 90 38 Q 88 56 70 60 Q 45 64 25 55 Z" fill="none" stroke-width="6"/>
+        <circle cx="50" cy="46" r="5"/>
+        <circle cx="62" cy="44" r="5"/>
+        <circle cx="74" cy="42" r="5"/>
+        <path d="M 25 55 Q 15 70 7 88" stroke-width="6" fill="none" stroke-linecap="round"/>
+      </svg>
+      SceneSeed
+    </a>
+    <nav class="nav user-nav" aria-label="Account" hidden>
+      <span id="user-email" class="user-email"></span>
+      <button id="signout-btn" type="button" class="link-btn">Sign out</button>
+    </nav>
+  </div>
+</header>
+
+<main id="dash-main" class="container dash" hidden>
+  <section class="dash-hero">
+    <h1>Welcome back<span id="welcome-name"></span>.</h1>
+    <p class="lede">Your groups and shows live here. Pick up where you left off — or spin up something new.</p>
+  </section>
+
+  <section class="dash-section">
+    <div class="dash-section-head">
+      <h2>Your groups</h2>
+      <button type="button" class="btn" disabled title="Group creation lands in v0.3.0">+ New group</button>
+    </div>
+    <div class="dash-empty">
+      <p>No groups yet. Group creation ships in <strong>v0.3.0</strong> — coming next.</p>
+    </div>
+  </section>
+
+  <section class="dash-section">
+    <h2>What's coming</h2>
+    <ol class="steps">
+      <li>
+        <h3>v0.3.0 · Groups</h3>
+        <p>Create improv ensembles. Name, description, owner-only access via Firestore rules.</p>
+      </li>
+      <li>
+        <h3>v0.4.0 · Shows</h3>
+        <p>Add shows under a group. Auto-generate the public code (<code>color-2###</code>) on creation.</p>
+      </li>
+      <li>
+        <h3>v0.5.0 · Audience submission</h3>
+        <p>Public <code>/s/?c=…</code> page with character counter. Submission window enforced server-side.</p>
+      </li>
+    </ol>
+  </section>
+</main>
+
+<div id="dash-loading" class="dash-loading">
+  <p>Checking sign-in…</p>
+</div>
+
+<footer class="site-footer">
+  <div class="container">
+    <div>
+      <a href="/sceneseed/">Home</a>
+      <a href="privacy.html">Privacy</a>
+      <a href="https://github.com/itsavibecode/sceneseed">Source</a>
+    </div>
+    <div>SceneSeed v0.2.0 · MIT</div>
+  </div>
+</footer>
+
+<script type="module">
+import { onAuth, signOut } from './auth.js';
+
+const dashMain = document.getElementById('dash-main');
+const dashLoading = document.getElementById('dash-loading');
+const userNav = document.querySelector('.user-nav');
+const userEmail = document.getElementById('user-email');
+const welcomeName = document.getElementById('welcome-name');
+const signoutBtn = document.getElementById('signout-btn');
+
+onAuth((user) => {
+  if (!user) {
+    window.location.replace('signin.html');
+    return;
+  }
+  // Reveal the dashboard once we know who's here.
+  dashLoading.hidden = true;
+  dashMain.hidden = false;
+  userNav.hidden = false;
+  userEmail.textContent = user.email || '';
+  if (user.displayName) {
+    welcomeName.textContent = `, ${user.displayName.split(' ')[0]}`;
+  }
+});
+
+signoutBtn.addEventListener('click', async () => {
+  await signOut();
+  window.location.replace('./');
+});
+</script>
+</body>
+</html>
