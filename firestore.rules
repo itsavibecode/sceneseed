@@ -80,9 +80,16 @@ service cloud.firestore {
         // so anyone able to compute the hash already has the text.
         allow get: if true;
 
-        // LIST is owner-only — the full feed of suggestions is private to the host.
-        allow list: if isAuthed()
-                    && getEvent(publicCode).ownerId == request.auth.uid;
+        // LIST is allowed for:
+        //   - the event owner (host dashboard / performer view)
+        //   - anyone, when the event has an active "ensemble share" window
+        //     (shareEnabled == true AND shareExpiresAt > server time)
+        // The publicCode itself is the only discoverability barrier; this is
+        // accepted because audience members already know the publicCode from
+        // the QR code / submission URL during the show.
+        allow list: if (isAuthed() && getEvent(publicCode).ownerId == request.auth.uid)
+                    || (getEvent(publicCode).get('shareEnabled', false) == true
+                        && getEvent(publicCode).get('shareExpiresAt', request.time) > request.time);
 
         // PUBLIC CREATE — server-side window enforcement happens here.
         //   - Window must be open (force_open OR auto + within times + cushion)

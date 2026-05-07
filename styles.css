@@ -786,6 +786,74 @@ dialog.dialog-lg .dialog-form {
 }
 .show-grid-side #public-url:hover { color: var(--ink); }
 
+/* QR card inside Public code aside */
+.qr-card {
+  margin-top: 14px;
+  padding: 12px;
+  background: #fff;
+  border: 1px solid var(--hairline);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+@media (prefers-color-scheme: dark) {
+  /* Keep QR background pure white so the code is readable when scanned */
+  .qr-card { background: #ffffff; border-color: rgba(255,255,255,0.1); }
+}
+.qr-display {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+}
+.qr-display svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+.qr-loading {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+/* Tiny status tags inside the ensemble view list */
+.sug-tag {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: var(--bg-soft);
+  color: var(--muted);
+}
+.sug-card.is-favorite .sug-tag {
+  background: rgba(202, 138, 4, 0.12);
+  color: #a16207;
+}
+.sug-card.is-used .sug-tag {
+  background: rgba(101, 163, 13, 0.12);
+  color: #4d7c0f;
+}
+@media (prefers-color-scheme: dark) {
+  .sug-card.is-favorite .sug-tag { color: #fde68a; background: rgba(250,204,21,0.18); }
+  .sug-card.is-used .sug-tag     { color: #bef264; background: rgba(163,230,53,0.18); }
+}
+
+/* Share-status pill (saved/error feedback inside the share section) */
+#share-status {
+  font-size: 13px;
+}
+#share-status[data-kind="success"] { color: #4d7c0f; }
+#share-status[data-kind="error"]   { color: #b91c1c; }
+@media (prefers-color-scheme: dark) {
+  #share-status[data-kind="success"] { color: #bef264; }
+  #share-status[data-kind="error"]   { color: #fca5a5; }
+}
+
 /* ───────── Suggestions feed (host) ───────── */
 .sug-toolbar {
   display: flex;

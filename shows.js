@@ -130,6 +130,8 @@ export async function createShow(groupId, fields) {
     profanityFilterEnabled: fields.profanityFilterEnabled !== false,
     duplicateDetectionEnabled: fields.duplicateDetectionEnabled !== false,
     nameCollection: validNameMode(fields.nameCollection),
+    shareEnabled: false,
+    shareExpiresAt: null,
     createdAt: serverTimestamp()
   };
 
@@ -188,6 +190,8 @@ export async function updateShow(publicCode, fields) {
   if (fields.profanityFilterEnabled !== undefined) updates.profanityFilterEnabled = !!fields.profanityFilterEnabled;
   if (fields.duplicateDetectionEnabled !== undefined) updates.duplicateDetectionEnabled = !!fields.duplicateDetectionEnabled;
   if (fields.nameCollection !== undefined) updates.nameCollection = validNameMode(fields.nameCollection);
+  if (fields.shareEnabled !== undefined) updates.shareEnabled = !!fields.shareEnabled;
+  if (fields.shareExpiresAt !== undefined) updates.shareExpiresAt = toTimestamp(fields.shareExpiresAt);
   await updateDoc(doc(db, 'events', publicCode), updates);
 }
 

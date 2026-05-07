@@ -67,7 +67,8 @@ firebase deploy --only firestore:rules
 | 0.6.1 | ✅ shipped | Show page 2-col layout (Suggestions 3fr + Public code 1fr); mobile header stacks; cleanup |
 | 0.6.2 | ✅ shipped | Optional/required first-name collection per show + CSV export per show + dashboard "Past shows" section with downloads |
 | 0.7.0 | ✅ shipped | Full-screen performer view (auto-fit text, tap/keyboard nav, favorite + mark-used inline) |
-| 0.8.0 | next | QR code + ensemble share link with expiry |
+| 0.8.0 | ✅ shipped | Per-show QR code (PNG download) + ensemble share link with auto-expiry |
+| 0.9.0 | next | Post-show summary + PNG export |
 | 0.6.0 | | Suggestions dashboard (favorite/hide/used/search/filter) |
 | 0.7.0 | | Full-screen performer view |
 | 0.8.0 | | QR code + ensemble share link with expiry |
@@ -75,6 +76,13 @@ firebase deploy --only firestore:rules
 | 1.0.0 | | Polish, mobile QA, Lighthouse pass |
 
 ## Changelog
+
+### v0.8.0 — 2026-05-07
+- **QR code per show**: live SVG preview rendered into the Public-code aside on `show.html`, plus a "Download QR (PNG)" button that hands you a 1024×1024 PNG suitable for projecting, printing, or pasting into a flyer. Library: `qrcode@1.5.3` via `esm.run` CDN, wrapped in a tiny local `qr.js`.
+- **Ensemble share link**: per-show toggle that exposes a read-only feed at `/view/?c=<publicCode>` for ensemble members (no sign-in needed). Defaults to expiring 24h after `showEndsAt`; host can extend or shorten via a datetime picker. Disabling the toggle revokes immediately.
+- **`view/index.html`**: new public-but-restricted page that subscribes live to the suggestions feed when share is active. Hidden suggestions are filtered out for privacy. Shows ★ favorite and ✓ used tags as a quiet recap. Locked screen if share is off or expired.
+- **`firestore.rules` updated**: suggestion `list` now allowed when the parent event has `shareEnabled == true && shareExpiresAt > request.time`, in addition to the existing owner-only path. **Re-publish required.**
+- Trade-off: the share URL uses the same `publicCode` as the audience submission URL, so audience members technically have the URL while a share is active. Accepted as a feature for an MVP — hosts disable the share when they want the feed private again.
 
 ### v0.7.0 — 2026-05-07
 - **`perform.html`** — full-screen performer view at `perform.html?code=<publicCode>`. Black background, suggestion text auto-fits to fill the screen via binary-search font-sizing. Built for projecting on a back wall, holding up a phone, or pushing to a TV.
