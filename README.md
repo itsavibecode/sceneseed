@@ -61,8 +61,9 @@ firebase deploy --only firestore:rules
 | 0.3.1 | ✅ shipped | Fix: groups list stuck on Loading (composite index avoidance + error logging) |
 | 0.4.0 | ✅ shipped | Shows CRUD: create / list / view / edit / delete + auto `color-2###` public-code generator |
 | 0.5.0 | ✅ shipped | Public audience submission page (`/s/?c=…`) with character counter, window state, dedup feedback |
-| 0.5.1 | ✅ shipped | Audience UX polish: live countdown with hidden 3s cushion, prominent success state, prompt as visual centerpiece |
-| 0.5.2 | | Profanity filter + dedupe + window enforcement audited end-to-end |
+| 0.5.1 | ✅ shipped | Audience UX polish: live countdown, prominent success state, prompt as visual centerpiece |
+| 0.5.2 | ✅ shipped | Cushion direction flipped (+3s grace AFTER close, not before); seconds shown in hour countdowns; matching server grace |
+| 0.5.3 | | Profanity filter + dedupe + window enforcement audited end-to-end |
 | 0.6.0 | | Suggestions dashboard (favorite/hide/used/search/filter) |
 | 0.7.0 | | Full-screen performer view |
 | 0.8.0 | | QR code + ensemble share link with expiry |
@@ -70,6 +71,11 @@ firebase deploy --only firestore:rules
 | 1.0.0 | | Polish, mobile QA, Lighthouse pass |
 
 ## Changelog
+
+### v0.5.2 — 2026-05-07
+- **Cushion direction fix.** Previously the form locked 3 seconds *before* the official close. Flipped to 3 seconds *after* — if the show closes at 2:30:00, the audience form keeps working until 2:30:03. The countdown still ticks down to the *official* close (2:30:00 → "0s") and then hides itself; the cushion stays invisible. This matches the original intent: a quiet generosity for late submitters and slow connections.
+- **Server grace matches.** `firestore.rules` now allows submissions until `submissionCloseAt + duration.value(3, 's')` so writes during the client cushion actually save. **Re-publish the rules** for this to take effect.
+- **Seconds in long countdowns.** Format now shows seconds even in the hour-and-up case: `Closes in 1h 23m 45s` (was `Closes in 1h 23m`).
 
 ### v0.5.1 — 2026-05-07
 - **Live countdown** under the open-state pill: `Closes in 1h 23m`, `Closes in 12m 45s`, `Closes in 23s`. Updates every second. Goes amber under 60s, red under 10s.

@@ -31,12 +31,15 @@ service cloud.firestore {
       return get(/databases/$(database)/documents/events/$(publicCode)).data;
     }
 
+    // 3-second server-side grace past submissionCloseAt mirrors the
+    // audience client cushion — late submissions absorbed by network latency
+    // still save instead of bouncing on a millisecond miss.
     function isWindowOpen(publicCode) {
       let event = getEvent(publicCode);
       return event.manualStatus == 'force_open' ||
         (event.manualStatus == 'auto'
           && request.time >= event.submissionOpenAt
-          && request.time <= event.submissionCloseAt);
+          && request.time <= event.submissionCloseAt + duration.value(3, 's'));
     }
 
     // ───────── Profiles ─────────

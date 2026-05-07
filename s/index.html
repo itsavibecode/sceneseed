@@ -6,7 +6,7 @@
 
 <title>Suggest a scene — SceneSeed</title>
 <meta name="description" content="Submit a one-line suggestion to the show.">
-<meta name="version" content="0.5.1">
+<meta name="version" content="0.5.2">
 <meta name="theme-color" content="#0f172a">
 <meta name="robots" content="noindex">
 
@@ -86,9 +86,12 @@ import { db } from '../firebase-config.js';
 import { submitSuggestion } from '../submissions.js';
 import { windowState } from '../shows.js';
 
-// Hidden cushion: lock the form a few seconds before the actual server close
-// time so a slow audience doesn't get a confusing rejection. The server still
-// has those extra seconds of grace.
+// Hidden grace: keep the form usable for an extra few seconds AFTER the
+// official close time so a slow audience or laggy network still goes through.
+// The countdown displays the official close (e.g. 2:30:00), but the form stays
+// active until officialClose + cushion (e.g. 2:30:03). Firestore rules apply
+// the same grace server-side so submissions inside the cushion actually save.
+// We don't surface the cushion in the UI — it's a quiet generosity.
 const CLIENT_CUSHION_MS = 3000;
 
 const code = new URLSearchParams(window.location.search).get('c');
@@ -143,15 +146,16 @@ function fmtCountdown(ms) {
   const h = Math.floor(totalSec / 3600);
   const m = Math.floor((totalSec % 3600) / 60);
   const s = totalSec % 60;
-  if (h >= 1) return `Closes in ${h}h ${m}m`;
-  if (m >= 1) return `Closes in ${m}m ${String(s).padStart(2, '0')}s`;
+  const ss = String(s).padStart(2, '0');
+  if (h >= 1) return `Closes in ${h}h ${String(m).padStart(2, '0')}m ${ss}s`;
+  if (m >= 1) return `Closes in ${m}m ${ss}s`;
   return `Closes in ${s}s`;
 }
 
-// Client-side close moment, with the hidden cushion baked in.
+// Effective form-lock time = official close + cushion (audience-side leniency).
 function effectiveCloseMs() {
   const t = event?.submissionCloseAt?.toMillis?.();
-  return t ? t - CLIENT_CUSHION_MS : null;
+  return t ? t + CLIENT_CUSHION_MS : null;
 }
 
 // Compute current state, factoring in the cushion. Mirrors windowState() from
@@ -182,13 +186,21 @@ function refreshState() {
     submitBtn.disabled = false;
     textArea.disabled = false;
 
-    // Countdown only when there's a real close time (not force_open).
+    // Countdown displays time-to-OFFICIAL-close (not the cushioned lock time).
+    // Once the official close passes, hide the countdown silently — the form
+    // stays active for the cushion duration, but we don't draw attention to it.
     if (event.manualStatus === 'auto') {
-      const remaining = effectiveCloseMs() - Date.now();
-      countdownEl.hidden = false;
-      countdownEl.textContent = fmtCountdown(remaining);
-      countdownEl.classList.toggle('urgent', remaining < 60_000);
-      countdownEl.classList.toggle('critical', remaining < 10_000);
+      const officialClose = event.submissionCloseAt?.toMillis?.() ?? 0;
+      const remaining = officialClose - Date.now();
+      if (remaining > 0) {
+        countdownEl.hidden = false;
+        countdownEl.textContent = fmtCountdown(remaining);
+        countdownEl.classList.toggle('urgent', remaining < 60_000);
+        countdownEl.classList.toggle('critical', remaining < 10_000);
+      } else {
+        countdownEl.hidden = true;
+        countdownEl.classList.remove('urgent', 'critical');
+      }
     } else {
       countdownEl.hidden = true;
     }
