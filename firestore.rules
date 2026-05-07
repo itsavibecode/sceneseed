@@ -71,8 +71,14 @@ service cloud.firestore {
       // ───────── Suggestions ─────────
 
       match /suggestions/{hash} {
-        // Only the event owner can read suggestions (audience cannot see others').
-        allow read: if isAuthed()
+        // Public can GET a single suggestion by its exact hash ID — used by the
+        // audience page to give precise "someone already submitted that" feedback.
+        // No information leak: the hash is deterministic from the suggestion text,
+        // so anyone able to compute the hash already has the text.
+        allow get: if true;
+
+        // LIST is owner-only — the full feed of suggestions is private to the host.
+        allow list: if isAuthed()
                     && getEvent(publicCode).ownerId == request.auth.uid;
 
         // PUBLIC CREATE — server-side window enforcement happens here.

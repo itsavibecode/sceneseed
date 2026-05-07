@@ -60,7 +60,7 @@ firebase deploy --only firestore:rules
 | 0.3.0 | ✅ shipped | Groups CRUD — create, list (live), view, edit, delete |
 | 0.3.1 | ✅ shipped | Fix: groups list stuck on Loading (composite index avoidance + error logging) |
 | 0.4.0 | ✅ shipped | Shows CRUD: create / list / view / edit / delete + auto `color-2###` public-code generator |
-| 0.5.0 | next | Public audience submission page (`/s/?c=…`) with character counter |
+| 0.5.0 | ✅ shipped | Public audience submission page (`/s/?c=…`) with character counter, window state, dedup feedback |
 | 0.5.1 | | Profanity filter + dedupe + window enforcement audited end-to-end |
 | 0.6.0 | | Suggestions dashboard (favorite/hide/used/search/filter) |
 | 0.7.0 | | Full-screen performer view |
@@ -69,6 +69,14 @@ firebase deploy --only firestore:rules
 | 1.0.0 | | Polish, mobile QA, Lighthouse pass |
 
 ## Changelog
+
+### v0.5.0 — 2026-05-07
+- **Audience submission page** at `/s/?c={publicCode}` — no login, mobile-first, dark-mode aware
+- Reads the show by public code, displays title + prompt + character counter (live)
+- Window state pill below the form: `Open · closes 8:30 PM`, `Opens Fri Apr 14, 7:30 PM`, or `Submissions are closed`. Auto-refreshes every 30s so a "before" page flips to "open" without a manual refresh.
+- Submit flow: `submissions.js` writes to `/events/{publicCode}/suggestions/{hash}` where `hash` is the first 16 hex chars of SHA-256 of the normalized text — duplicates collide on doc ID, so a re-submission of the same text gets a precise "Someone beat you to that one" message instead of a generic failure.
+- All actual enforcement (window times, length cap, manual override) lives in Firestore security rules. The client is just a friendlier face on the same checks.
+- **Firestore rules updated** — split suggestion `read` into `get: if true` (so the audience page can do duplicate detection) and `list: if owner` (so the full feed stays private). **Re-publish required.**
 
 ### v0.4.0 — 2026-05-07
 - **Shows CRUD** — full create / list / view / edit / delete under a group

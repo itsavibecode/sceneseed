@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+
+<title>Suggest a scene — SceneSeed</title>
+<meta name="description" content="Submit a one-line suggestion to the show.">
+<meta name="version" content="0.5.0">
+<meta name="theme-color" content="#0f172a">
+<meta name="robots" content="noindex">
+
+<link rel="icon" type="image/svg+xml" href="../favicon.svg">
+<link rel="manifest" href="../site.webmanifest">
+
+<link rel="stylesheet" href="../styles.css">
+
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-D04TM51CVE"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-D04TM51CVE');
+</script>
+</head>
+<body class="audience">
+
+<main id="aud-main" class="aud-wrap" hidden>
+  <header class="aud-brand" aria-label="SceneSeed">
+    <svg viewBox="0 0 100 100" aria-hidden="true" class="aud-logo">
+      <path d="M 25 55 Q 35 30 60 25 Q 82 23 90 38 Q 88 56 70 60 Q 45 64 25 55 Z" fill="none" stroke-width="6"/>
+      <circle cx="50" cy="46" r="5"/>
+      <circle cx="62" cy="44" r="5"/>
+      <circle cx="74" cy="42" r="5"/>
+      <path d="M 25 55 Q 15 70 7 88" stroke-width="6" fill="none" stroke-linecap="round"/>
+    </svg>
+    <span>SceneSeed</span>
+  </header>
+
+  <section class="aud-card">
+    <h1 id="show-title">…</h1>
+    <p id="show-prompt" class="aud-prompt"></p>
+
+    <form id="aud-form" novalidate>
+      <label for="aud-text" class="visually-hidden">Your suggestion</label>
+      <textarea id="aud-text" name="text" rows="3" required placeholder="Type your suggestion…" autocomplete="off" autocapitalize="sentences" maxlength="140"></textarea>
+      <div class="aud-counter">
+        <span id="aud-count">0</span> / <span id="aud-max">140</span>
+      </div>
+      <button id="aud-submit" type="submit" class="btn aud-submit">Send suggestion</button>
+    </form>
+
+    <div id="aud-state" class="aud-state" hidden></div>
+    <div id="aud-message" class="aud-message" hidden></div>
+  </section>
+
+  <footer class="aud-footer">
+    <span id="aud-code-label"></span>
+  </footer>
+</main>
+
+<div id="aud-loading" class="aud-loading">
+  <p>Loading…</p>
+</div>
+
+<div id="aud-not-found" class="aud-loading" hidden>
+  <p id="aud-not-found-msg">This link doesn't lead to a show.</p>
+</div>
+
+<script type="module">
+import { doc, getDoc } from 'https://www.gstatic.com/firebasejs/12.12.1/firebase-firestore.js';
+import { db } from '../firebase-config.js';
+import { submitSuggestion } from '../submissions.js';
+import { windowState } from '../shows.js';
+
+const code = new URLSearchParams(window.location.search).get('c');
+
+const main        = document.getElementById('aud-main');
+const loading     = document.getElementById('aud-loading');
+const notFound    = document.getElementById('aud-not-found');
+const notFoundMsg = document.getElementById('aud-not-found-msg');
+const titleEl     = document.getElementById('show-title');
+const promptEl    = document.getElementById('show-prompt');
+const codeLabel   = document.getElementById('aud-code-label');
+
+const form        = document.getElementById('aud-form');
+const textArea    = document.getElementById('aud-text');
+const counterEl   = document.getElementById('aud-count');
+const maxEl       = document.getElementById('aud-max');
+const submitBtn   = document.getElementById('aud-submit');
+const stateEl     = document.getElementById('aud-state');
+const messageEl   = document.getElementById('aud-message');
+
+let event = null;
+
+function setMessage(html, kind) {
+  messageEl.hidden = false;
+  messageEl.dataset.kind = kind;
+  messageEl.innerHTML = html;
+}
+function clearMessage() {
+  messageEl.hidden = true;
+  messageEl.removeAttribute('data-kind');
+  messageEl.innerHTML = '';
+}
+
+function fmtTime(ts) {
+  const d = ts?.toDate?.();
+  if (!d) return '';
+  return d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+}
+function fmtDateTime(ts) {
+  const d = ts?.toDate?.();
+  if (!d) return '';
+  return d.toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+}
+
+function refreshState() {
+  if (!event) return;
+  const ws = windowState(event);
+  stateEl.hidden = false;
+  stateEl.dataset.kind = ws.state;
+  if (ws.state === 'open') {
+    const closeT = fmtTime(event.submissionCloseAt);
+    stateEl.textContent = event.manualStatus === 'force_open'
+      ? 'Submissions are open.'
+      : closeT ? `Submissions are open · closes ${closeT}` : 'Submissions are open.';
+    submitBtn.disabled = false;
+    textArea.disabled = false;
+    return true;
+  }
+  if (ws.state === 'before') {
+    stateEl.textContent = `Submissions open ${fmtDateTime(event.submissionOpenAt)}.`;
+  } else if (ws.state === 'after') {
+    stateEl.textContent = 'Submissions are closed for this show.';
+  } else {
+    stateEl.textContent = 'Submissions are closed.';
+  }
+  submitBtn.disabled = true;
+  textArea.disabled = true;
+  return false;
+}
+
+function showNotFound(msg) {
+  loading.hidden = true;
+  main.hidden = true;
+  notFound.hidden = false;
+  if (msg) notFoundMsg.textContent = msg;
+}
+
+async function load() {
+  if (!code) {
+    showNotFound("This link is missing a show code.");
+    return;
+  }
+  try {
+    const snap = await getDoc(doc(db, 'events', code));
+    if (!snap.exists()) {
+      showNotFound("That show couldn't be found. Double-check the link.");
+      return;
+    }
+    event = { id: snap.id, ...snap.data() };
+    titleEl.textContent = event.title || '(untitled show)';
+    document.title = `${event.title || 'Suggestion'} — SceneSeed`;
+    if (event.promptText) {
+      promptEl.textContent = event.promptText;
+    } else {
+      promptEl.hidden = true;
+    }
+    codeLabel.textContent = event.publicCode;
+
+    const max = Number(event.maxSuggestionLength) || 140;
+    textArea.maxLength = max;
+    maxEl.textContent = String(max);
+    updateCounter();
+
+    loading.hidden = true;
+    main.hidden = false;
+    refreshState();
+    // Re-check window state every 30s so a "before" page flips to "open" without a refresh.
+    setInterval(refreshState, 30 * 1000);
+  } catch (err) {
+    console.error(err);
+    showNotFound("Couldn't load this show. Try refreshing the page.");
+  }
+}
+
+function updateCounter() {
+  const n = textArea.value.length;
+  counterEl.textContent = String(n);
+  counterEl.classList.toggle('over', n >= (Number(textArea.maxLength) || 140) * 0.9);
+}
+
+textArea.addEventListener('input', updateCounter);
+
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  if (!event) return;
+  clearMessage();
+  if (!refreshState()) {
+    setMessage('Submissions are closed right now.', 'error');
+    return;
+  }
+  const text = textArea.value.trim();
+  if (!text) return;
+
+  submitBtn.disabled = true;
+  const wasLabel = submitBtn.textContent;
+  submitBtn.textContent = 'Sending…';
+  try {
+    await submitSuggestion(event.publicCode, text);
+    setMessage(`<strong>Got it.</strong> Thanks for the seed.`, 'success');
+    textArea.value = '';
+    updateCounter();
+  } catch (err) {
+    if (err.code === 'duplicate') {
+      setMessage('Someone beat you to that one. Try another.', 'warn');
+    } else if (err.code === 'empty') {
+      setMessage('That submission was empty.', 'error');
+    } else {
+      // Most likely the window closed between the page load and submit, or the
+      // text exceeds the max, or profanity/dedup at the rule layer.
+      const ws = windowState(event);
+      if (ws.state !== 'open') {
+        setMessage('Submissions are closed right now.', 'error');
+      } else {
+        setMessage("That suggestion couldn't be sent. Try a different one.", 'error');
+      }
+      console.error(err);
+    }
+  } finally {
+    submitBtn.textContent = wasLabel;
+    refreshState();
+  }
+});
+
+load();
+</script>
+</body>
+</html>
