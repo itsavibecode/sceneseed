@@ -58,6 +58,7 @@ firebase deploy --only firestore:rules
 | 0.1.0 | ✅ shipped | Landing page, favicon, SEO basics, GA4, privacy page, Firestore rules |
 | 0.2.0 | ✅ shipped | Auth (email link + Google), protected dashboard shell, profile auto-create |
 | 0.3.0 | ✅ shipped | Groups CRUD — create, list (live), view, edit, delete |
+| 0.3.1 | ✅ shipped | Fix: groups list stuck on Loading (composite index avoidance + error logging) |
 | 0.4.0 | next | Shows CRUD with public-code generation |
 | 0.5.0 | | Public audience submission page (`/s/?c=…`) with character counter |
 | 0.5.1 | | Profanity filter + dedupe + window enforcement audited end-to-end |
@@ -68,6 +69,16 @@ firebase deploy --only firestore:rules
 | 1.0.0 | | Polish, mobile QA, Lighthouse pass |
 
 ## Changelog
+
+### v0.3.1 — 2026-05-07
+- Fix: dashboard groups list stayed on "Loading…" forever after creating
+  a group. The Firestore query combined `where('ownerId','==',uid)` with
+  `orderBy('createdAt','desc')`, which requires a composite index that
+  wasn't deployed. `onSnapshot` was failing silently with no error callback.
+- Dropped the `orderBy` from the query and sort newest-first client-side
+  instead — no composite index needed, no extra setup step.
+- Added an `onSnapshot` error callback that logs failures and shows the
+  empty state instead of leaving the loading spinner up forever.
 
 ### v0.3.0 — 2026-05-07
 - Groups CRUD: create, list (live via `onSnapshot`), view detail, edit, delete

@@ -4,7 +4,7 @@
 import { auth, db } from './firebase-config.js';
 import {
   collection, doc, addDoc, getDoc, updateDoc, deleteDoc,
-  query, where, orderBy, onSnapshot, serverTimestamp
+  query, where, onSnapshot, serverTimestamp
 } from 'https://www.gstatic.com/firebasejs/12.12.1/firebase-firestore.js';
 
 function requireUser() {
@@ -27,18 +27,32 @@ export async function createGroup({ name, description = '' }) {
 }
 
 // Live subscription to the user's groups, sorted newest first.
+// We sort client-side instead of using Firestore orderBy so we don't require
+// a composite index on (ownerId, createdAt). Group counts per user are small
+// enough that client sort is trivial.
 // Returns an unsubscribe function.
 export function listGroups(callback) {
   const user = requireUser();
   const q = query(
     collection(db, 'groups'),
-    where('ownerId', '==', user.uid),
-    orderBy('createdAt', 'desc')
+    where('ownerId', '==', user.uid)
   );
-  return onSnapshot(q, (snap) => {
-    const groups = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-    callback(groups);
-  });
+  return onSnapshot(
+    q,
+    (snap) => {
+      const groups = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      groups.sort((a, b) => {
+        const aT = a.createdAt?.toMillis?.() ?? 0;
+        const bT = b.createdAt?.toMillis?.() ?? 0;
+        return bT - aT;
+      });
+      callback(groups);
+    },
+    (err) => {
+      console.error('Failed to load groups:', err);
+      callback([]);
+    }
+  );
 }
 
 export async function getGroup(groupId) {
