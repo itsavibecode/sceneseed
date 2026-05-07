@@ -61,7 +61,8 @@ firebase deploy --only firestore:rules
 | 0.3.1 | ✅ shipped | Fix: groups list stuck on Loading (composite index avoidance + error logging) |
 | 0.4.0 | ✅ shipped | Shows CRUD: create / list / view / edit / delete + auto `color-2###` public-code generator |
 | 0.5.0 | ✅ shipped | Public audience submission page (`/s/?c=…`) with character counter, window state, dedup feedback |
-| 0.5.1 | | Profanity filter + dedupe + window enforcement audited end-to-end |
+| 0.5.1 | ✅ shipped | Audience UX polish: live countdown with hidden 3s cushion, prominent success state, prompt as visual centerpiece |
+| 0.5.2 | | Profanity filter + dedupe + window enforcement audited end-to-end |
 | 0.6.0 | | Suggestions dashboard (favorite/hide/used/search/filter) |
 | 0.7.0 | | Full-screen performer view |
 | 0.8.0 | | QR code + ensemble share link with expiry |
@@ -69,6 +70,12 @@ firebase deploy --only firestore:rules
 | 1.0.0 | | Polish, mobile QA, Lighthouse pass |
 
 ## Changelog
+
+### v0.5.1 — 2026-05-07
+- **Live countdown** under the open-state pill: `Closes in 1h 23m`, `Closes in 12m 45s`, `Closes in 23s`. Updates every second. Goes amber under 60s, red under 10s.
+- **Hidden 3-second client cushion** — the audience form locks 3s before the actual server close time so a slow audience doesn't get a confusing rejection from latency. The server still has those extra seconds of grace; we don't tell the audience.
+- **Success state replaces the form** — instead of a small "Got it" line below the textarea, a successful submission swaps the whole form for a centered success card (big checkmark, "Got it!" headline, "Send another suggestion" button to swap back).
+- **Prompt is now the visual centerpiece** — show title becomes a small uppercase label above the prompt; the prompt itself becomes a serif display headline with an accent rule above it. If no prompt is set, the title falls back to the headline slot. Audience instantly sees "what am I being asked?"
 
 ### v0.5.0 — 2026-05-07
 - **Audience submission page** at `/s/?c={publicCode}` — no login, mobile-first, dark-mode aware

@@ -6,7 +6,7 @@
 
 <title>Suggest a scene — SceneSeed</title>
 <meta name="description" content="Submit a one-line suggestion to the show.">
-<meta name="version" content="0.5.0">
+<meta name="version" content="0.5.1">
 <meta name="theme-color" content="#0f172a">
 <meta name="robots" content="noindex">
 
@@ -38,8 +38,8 @@
   </header>
 
   <section class="aud-card">
-    <h1 id="show-title">…</h1>
-    <p id="show-prompt" class="aud-prompt"></p>
+    <p id="show-label" class="aud-show-label" hidden></p>
+    <h1 id="show-headline" class="aud-headline">…</h1>
 
     <form id="aud-form" novalidate>
       <label for="aud-text" class="visually-hidden">Your suggestion</label>
@@ -50,7 +50,20 @@
       <button id="aud-submit" type="submit" class="btn aud-submit">Send suggestion</button>
     </form>
 
+    <div id="aud-success" class="aud-success" hidden>
+      <div class="aud-success-icon" aria-hidden="true">
+        <svg viewBox="0 0 64 64">
+          <circle cx="32" cy="32" r="28" fill="none" stroke-width="4"/>
+          <path d="M 20 33 L 29 42 L 45 24" fill="none" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <h2>Got it!</h2>
+      <p>Thanks for the seed.</p>
+      <button id="aud-again" type="button" class="btn secondary">Send another suggestion</button>
+    </div>
+
     <div id="aud-state" class="aud-state" hidden></div>
+    <div id="aud-countdown" class="aud-countdown" hidden></div>
     <div id="aud-message" class="aud-message" hidden></div>
   </section>
 
@@ -73,14 +86,19 @@ import { db } from '../firebase-config.js';
 import { submitSuggestion } from '../submissions.js';
 import { windowState } from '../shows.js';
 
+// Hidden cushion: lock the form a few seconds before the actual server close
+// time so a slow audience doesn't get a confusing rejection. The server still
+// has those extra seconds of grace.
+const CLIENT_CUSHION_MS = 3000;
+
 const code = new URLSearchParams(window.location.search).get('c');
 
 const main        = document.getElementById('aud-main');
 const loading     = document.getElementById('aud-loading');
 const notFound    = document.getElementById('aud-not-found');
 const notFoundMsg = document.getElementById('aud-not-found-msg');
-const titleEl     = document.getElementById('show-title');
-const promptEl    = document.getElementById('show-prompt');
+const labelEl     = document.getElementById('show-label');
+const headlineEl  = document.getElementById('show-headline');
 const codeLabel   = document.getElementById('aud-code-label');
 
 const form        = document.getElementById('aud-form');
@@ -89,9 +107,13 @@ const counterEl   = document.getElementById('aud-count');
 const maxEl       = document.getElementById('aud-max');
 const submitBtn   = document.getElementById('aud-submit');
 const stateEl     = document.getElementById('aud-state');
+const countdownEl = document.getElementById('aud-countdown');
 const messageEl   = document.getElementById('aud-message');
+const successEl   = document.getElementById('aud-success');
+const againBtn    = document.getElementById('aud-again');
 
 let event = null;
+let tickHandle = null;
 
 function setMessage(html, kind) {
   messageEl.hidden = false;
@@ -115,9 +137,41 @@ function fmtDateTime(ts) {
   return d.toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 }
 
+function fmtCountdown(ms) {
+  if (ms <= 0) return 'Closes in 0s';
+  const totalSec = Math.floor(ms / 1000);
+  const h = Math.floor(totalSec / 3600);
+  const m = Math.floor((totalSec % 3600) / 60);
+  const s = totalSec % 60;
+  if (h >= 1) return `Closes in ${h}h ${m}m`;
+  if (m >= 1) return `Closes in ${m}m ${String(s).padStart(2, '0')}s`;
+  return `Closes in ${s}s`;
+}
+
+// Client-side close moment, with the hidden cushion baked in.
+function effectiveCloseMs() {
+  const t = event?.submissionCloseAt?.toMillis?.();
+  return t ? t - CLIENT_CUSHION_MS : null;
+}
+
+// Compute current state, factoring in the cushion. Mirrors windowState() from
+// shows.js but applies the audience-only cushion for `auto` mode.
+function audienceWindowState() {
+  if (!event) return { state: 'closed' };
+  if (event.manualStatus === 'force_open') return { state: 'open' };
+  if (event.manualStatus === 'force_closed') return { state: 'closed' };
+  const open = event.submissionOpenAt?.toDate?.();
+  const close = effectiveCloseMs();
+  if (!open || !close) return { state: 'closed' };
+  const now = Date.now();
+  if (now < open.getTime()) return { state: 'before' };
+  if (now > close) return { state: 'after' };
+  return { state: 'open' };
+}
+
 function refreshState() {
-  if (!event) return;
-  const ws = windowState(event);
+  if (!event) return false;
+  const ws = audienceWindowState();
   stateEl.hidden = false;
   stateEl.dataset.kind = ws.state;
   if (ws.state === 'open') {
@@ -127,8 +181,21 @@ function refreshState() {
       : closeT ? `Submissions are open · closes ${closeT}` : 'Submissions are open.';
     submitBtn.disabled = false;
     textArea.disabled = false;
+
+    // Countdown only when there's a real close time (not force_open).
+    if (event.manualStatus === 'auto') {
+      const remaining = effectiveCloseMs() - Date.now();
+      countdownEl.hidden = false;
+      countdownEl.textContent = fmtCountdown(remaining);
+      countdownEl.classList.toggle('urgent', remaining < 60_000);
+      countdownEl.classList.toggle('critical', remaining < 10_000);
+    } else {
+      countdownEl.hidden = true;
+    }
     return true;
   }
+  // closed states
+  countdownEl.hidden = true;
   if (ws.state === 'before') {
     stateEl.textContent = `Submissions open ${fmtDateTime(event.submissionOpenAt)}.`;
   } else if (ws.state === 'after') {
@@ -139,6 +206,25 @@ function refreshState() {
   submitBtn.disabled = true;
   textArea.disabled = true;
   return false;
+}
+
+function startTicking() {
+  if (tickHandle) return;
+  tickHandle = setInterval(refreshState, 1000);
+}
+
+function showSuccess() {
+  form.hidden = true;
+  messageEl.hidden = true;
+  successEl.hidden = false;
+}
+function showFormAgain() {
+  successEl.hidden = true;
+  messageEl.hidden = true;
+  form.hidden = false;
+  textArea.value = '';
+  updateCounter();
+  textArea.focus();
 }
 
 function showNotFound(msg) {
@@ -160,12 +246,17 @@ async function load() {
       return;
     }
     event = { id: snap.id, ...snap.data() };
-    titleEl.textContent = event.title || '(untitled show)';
     document.title = `${event.title || 'Suggestion'} — SceneSeed`;
+    // Visual hierarchy: prompt is the headline (the actual question).
+    // Show title becomes a small label above it, so the audience knows
+    // which show they're submitting to without competing for attention.
     if (event.promptText) {
-      promptEl.textContent = event.promptText;
+      labelEl.textContent = event.title || '';
+      labelEl.hidden = !event.title;
+      headlineEl.textContent = event.promptText;
     } else {
-      promptEl.hidden = true;
+      labelEl.hidden = true;
+      headlineEl.textContent = event.title || '(untitled show)';
     }
     codeLabel.textContent = event.publicCode;
 
@@ -177,8 +268,7 @@ async function load() {
     loading.hidden = true;
     main.hidden = false;
     refreshState();
-    // Re-check window state every 30s so a "before" page flips to "open" without a refresh.
-    setInterval(refreshState, 30 * 1000);
+    startTicking();
   } catch (err) {
     console.error(err);
     showNotFound("Couldn't load this show. Try refreshing the page.");
@@ -209,9 +299,7 @@ form.addEventListener('submit', async (e) => {
   submitBtn.textContent = 'Sending…';
   try {
     await submitSuggestion(event.publicCode, text);
-    setMessage(`<strong>Got it.</strong> Thanks for the seed.`, 'success');
-    textArea.value = '';
-    updateCounter();
+    showSuccess();
   } catch (err) {
     if (err.code === 'duplicate') {
       setMessage('Someone beat you to that one. Try another.', 'warn');
@@ -232,6 +320,10 @@ form.addEventListener('submit', async (e) => {
     submitBtn.textContent = wasLabel;
     refreshState();
   }
+});
+
+againBtn.addEventListener('click', () => {
+  showFormAgain();
 });
 
 load();
