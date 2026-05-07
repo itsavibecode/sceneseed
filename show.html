@@ -6,7 +6,7 @@
 
 <title>Show — SceneSeed</title>
 <meta name="description" content="Manage an improv show on SceneSeed.">
-<meta name="version" content="0.5.2">
+<meta name="version" content="0.6.0">
 <meta name="theme-color" content="#0f172a">
 <meta name="robots" content="noindex">
 
@@ -99,10 +99,26 @@
   </section>
 
   <section class="dash-section">
-    <h2>Suggestions</h2>
-    <div class="dash-empty">
-      <p>The suggestions feed lands in <strong>v0.6.0</strong> (audience submission page is v0.5.0).</p>
+    <div class="dash-section-head">
+      <h2>Suggestions</h2>
+      <span id="sug-summary" class="dialog-sub"></span>
     </div>
+
+    <div class="sug-toolbar">
+      <div class="sug-tabs" role="tablist" aria-label="Filter suggestions">
+        <button type="button" class="sug-tab is-active" data-filter="all" role="tab" aria-selected="true">All <span class="sug-tab-n" data-count="all">0</span></button>
+        <button type="button" class="sug-tab" data-filter="favorite" role="tab" aria-selected="false">★ Favorites <span class="sug-tab-n" data-count="favorite">0</span></button>
+        <button type="button" class="sug-tab" data-filter="hidden" role="tab" aria-selected="false">Hidden <span class="sug-tab-n" data-count="hidden">0</span></button>
+        <button type="button" class="sug-tab" data-filter="used" role="tab" aria-selected="false">Used <span class="sug-tab-n" data-count="used">0</span></button>
+      </div>
+      <input type="search" id="sug-search" class="sug-search" placeholder="Search suggestions…" autocomplete="off" aria-label="Search suggestions">
+    </div>
+
+    <div id="sug-loading" class="dash-empty"><p>Loading…</p></div>
+    <div id="sug-empty" class="dash-empty" hidden>
+      <p id="sug-empty-msg">No suggestions yet. Share the QR code or link with the audience to get the seeds rolling.</p>
+    </div>
+    <div id="sug-list" class="sug-list" hidden></div>
   </section>
 </main>
 
@@ -202,13 +218,14 @@
       <a href="/sceneseed/">Home</a>
       <a href="privacy.html">Privacy</a>
     </div>
-    <div>SceneSeed v0.5.2 · MIT</div>
+    <div>SceneSeed v0.6.0 · MIT</div>
   </div>
 </footer>
 
 <script type="module">
 import { onAuth, signOut } from './auth.js';
 import { getShow, updateShow, deleteShow, toInputValue, windowState } from './shows.js';
+import { listSuggestions, setSuggestionFlag, deleteSuggestion } from './host-suggestions.js';
 
 const code = new URLSearchParams(window.location.search).get('code');
 
@@ -246,6 +263,18 @@ const delName = document.getElementById('del-name');
 const confirmDeleteBtn = document.getElementById('confirm-delete');
 
 let currentShow = null;
+let unsubSuggestions = null;
+let allSuggestions = [];
+let activeFilter = 'all';
+let searchTerm = '';
+
+const sugLoading = document.getElementById('sug-loading');
+const sugEmpty = document.getElementById('sug-empty');
+const sugEmptyMsg = document.getElementById('sug-empty-msg');
+const sugList = document.getElementById('sug-list');
+const sugSearch = document.getElementById('sug-search');
+const sugSummary = document.getElementById('sug-summary');
+const sugTabs = document.querySelectorAll('.sug-tab');
 
 function showError(msg) {
   loading.hidden = true;
@@ -253,6 +282,151 @@ function showError(msg) {
   errorEl.hidden = false;
   errorMsg.textContent = msg;
 }
+
+// ── Suggestions feed ─────────────────────────────────────
+function escHtml(s) {
+  return String(s ?? '').replace(/[&<>"']/g, (c) => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  }[c]));
+}
+
+function relTime(d) {
+  if (!d) return '';
+  const ms = Date.now() - d.getTime();
+  const sec = Math.floor(ms / 1000);
+  if (sec < 10) return 'just now';
+  if (sec < 60) return `${sec}s ago`;
+  const min = Math.floor(sec / 60);
+  if (min < 60) return `${min}m ago`;
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return `${hr}h ago`;
+  return d.toLocaleDateString();
+}
+
+function renderCard(s) {
+  const created = s.createdAt?.toDate?.();
+  const time = created
+    ? `${created.toLocaleTimeString(undefined, { hour:'numeric', minute:'2-digit' })} · ${relTime(created)}`
+    : '';
+  const cls = ['sug-card'];
+  if (s.isFavorite) cls.push('is-favorite');
+  if (s.isHidden) cls.push('is-hidden');
+  if (s.isUsed) cls.push('is-used');
+  return `
+    <article class="${cls.join(' ')}" data-id="${escHtml(s.id)}">
+      <div class="sug-text">${escHtml(s.text)}</div>
+      <div class="sug-meta">
+        <span class="sug-time">${escHtml(time)}</span>
+        <div class="sug-actions">
+          <button type="button" class="sug-btn sug-fav"  data-action="favorite" title="${s.isFavorite ? 'Unfavorite' : 'Favorite'}" aria-label="${s.isFavorite ? 'Unfavorite' : 'Favorite'}" aria-pressed="${!!s.isFavorite}">${s.isFavorite ? '★' : '☆'}</button>
+          <button type="button" class="sug-btn sug-hide" data-action="hidden"   title="${s.isHidden   ? 'Unhide'     : 'Hide'}"      aria-label="${s.isHidden   ? 'Unhide'     : 'Hide'}"      aria-pressed="${!!s.isHidden}">${s.isHidden ? '↺' : '⊘'}</button>
+          <button type="button" class="sug-btn sug-used" data-action="used"     title="${s.isUsed     ? 'Mark unused' : 'Mark used'}" aria-label="${s.isUsed     ? 'Mark unused' : 'Mark used'}" aria-pressed="${!!s.isUsed}">${s.isUsed ? '✓' : '○'}</button>
+          <button type="button" class="sug-btn sug-del"  data-action="delete"   title="Delete"   aria-label="Delete">✕</button>
+        </div>
+      </div>
+    </article>
+  `;
+}
+
+function renderSuggestions() {
+  sugLoading.hidden = true;
+
+  const counts = {
+    all: allSuggestions.length,
+    favorite: allSuggestions.filter((s) => s.isFavorite).length,
+    hidden:   allSuggestions.filter((s) => s.isHidden).length,
+    used:     allSuggestions.filter((s) => s.isUsed).length
+  };
+  document.querySelectorAll('.sug-tab-n').forEach((el) => {
+    el.textContent = counts[el.dataset.count] ?? 0;
+  });
+
+  let filtered = allSuggestions;
+  if (activeFilter === 'favorite') filtered = filtered.filter((s) => s.isFavorite);
+  else if (activeFilter === 'hidden') filtered = filtered.filter((s) => s.isHidden);
+  else if (activeFilter === 'used') filtered = filtered.filter((s) => s.isUsed);
+
+  if (searchTerm) {
+    const t = searchTerm.toLowerCase();
+    filtered = filtered.filter((s) => (s.text || '').toLowerCase().includes(t));
+  }
+
+  if (filtered.length === 0) {
+    sugList.hidden = true;
+    sugList.innerHTML = '';
+    sugEmpty.hidden = false;
+    if (counts.all === 0) {
+      sugEmptyMsg.textContent = 'No suggestions yet. Share the QR code or link with the audience to get the seeds rolling.';
+    } else if (searchTerm) {
+      sugEmptyMsg.textContent = `No matches for "${searchTerm}".`;
+    } else {
+      sugEmptyMsg.textContent = `No suggestions in this filter yet.`;
+    }
+  } else {
+    sugEmpty.hidden = true;
+    sugList.hidden = false;
+    sugList.innerHTML = filtered.map(renderCard).join('');
+  }
+
+  sugSummary.textContent = activeFilter === 'all' && !searchTerm
+    ? (counts.all === 0 ? '' : `${counts.all} total`)
+    : `${filtered.length} of ${counts.all}`;
+}
+
+function startSuggestions(publicCode) {
+  if (unsubSuggestions) unsubSuggestions();
+  unsubSuggestions = listSuggestions(publicCode, (list) => {
+    allSuggestions = list;
+    renderSuggestions();
+  });
+}
+
+sugTabs.forEach((tab) => {
+  tab.addEventListener('click', () => {
+    sugTabs.forEach((t) => {
+      t.classList.remove('is-active');
+      t.setAttribute('aria-selected', 'false');
+    });
+    tab.classList.add('is-active');
+    tab.setAttribute('aria-selected', 'true');
+    activeFilter = tab.dataset.filter;
+    renderSuggestions();
+  });
+});
+
+sugSearch.addEventListener('input', () => {
+  searchTerm = sugSearch.value.trim();
+  renderSuggestions();
+});
+
+sugList.addEventListener('click', async (e) => {
+  const btn = e.target.closest('.sug-btn');
+  if (!btn) return;
+  const card = btn.closest('.sug-card');
+  if (!card || !currentShow) return;
+  const hash = card.dataset.id;
+  const action = btn.dataset.action;
+  const s = allSuggestions.find((x) => x.id === hash);
+  if (!s) return;
+
+  btn.disabled = true;
+  try {
+    if (action === 'favorite') {
+      await setSuggestionFlag(currentShow.publicCode, hash, 'isFavorite', !s.isFavorite);
+    } else if (action === 'hidden') {
+      await setSuggestionFlag(currentShow.publicCode, hash, 'isHidden', !s.isHidden);
+    } else if (action === 'used') {
+      await setSuggestionFlag(currentShow.publicCode, hash, 'isUsed', !s.isUsed);
+    } else if (action === 'delete') {
+      await deleteSuggestion(currentShow.publicCode, hash);
+    }
+  } catch (err) {
+    alert(`Couldn't update: ${err.message || err}`);
+    console.error(err);
+  } finally {
+    btn.disabled = false;
+  }
+});
 
 function fmt(ts) {
   if (!ts) return '—';
@@ -318,6 +492,7 @@ async function load() {
     loading.hidden = true;
     main.hidden = false;
     paint(show);
+    startSuggestions(show.publicCode);
   } catch (err) {
     console.error(err);
     showError('Could not load this show.');
@@ -335,6 +510,7 @@ onAuth((user) => {
 });
 
 signoutBtn.addEventListener('click', async () => {
+  if (unsubSuggestions) { unsubSuggestions(); unsubSuggestions = null; }
   await signOut();
   window.location.replace('./');
 });

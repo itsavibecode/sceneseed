@@ -729,6 +729,179 @@ dialog.dialog-lg .dialog-form {
   .window-list dd { margin-bottom: 8px; }
 }
 
+/* ───────── Suggestions feed (host) ───────── */
+.sug-toolbar {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+.sug-tabs {
+  display: inline-flex;
+  gap: 4px;
+  background: var(--bg-soft);
+  padding: 4px;
+  border-radius: 10px;
+  flex-wrap: wrap;
+}
+.sug-tab {
+  border: none;
+  background: transparent;
+  font: inherit;
+  font-size: 14px;
+  color: var(--muted);
+  padding: 6px 12px;
+  border-radius: 7px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+.sug-tab:hover { color: var(--ink); }
+.sug-tab.is-active {
+  background: var(--bg);
+  color: var(--ink);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+  font-weight: 600;
+}
+.sug-tab-n {
+  display: inline-block;
+  min-width: 18px;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 700;
+  background: rgba(100, 116, 139, 0.15);
+  color: var(--muted);
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-variant-numeric: tabular-nums;
+}
+.sug-tab.is-active .sug-tab-n {
+  background: var(--accent);
+  color: var(--bg);
+}
+
+.sug-search {
+  flex: 1;
+  min-width: 180px;
+  font: inherit;
+  font-size: 15px;
+  padding: 9px 14px;
+  border: 1px solid var(--hairline);
+  border-radius: 10px;
+  background: var(--bg);
+  color: var(--ink);
+}
+.sug-search:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+  border-color: transparent;
+}
+
+.sug-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sug-card {
+  border: 1px solid var(--hairline);
+  border-radius: 12px;
+  background: var(--bg);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: border-color 0.15s, background 0.15s, opacity 0.15s;
+}
+.sug-card.is-favorite {
+  border-color: rgba(202, 138, 4, 0.4);
+  background: rgba(250, 204, 21, 0.05);
+}
+.sug-card.is-used .sug-text {
+  text-decoration: line-through;
+  color: var(--muted);
+}
+.sug-card.is-hidden {
+  opacity: 0.55;
+  border-style: dashed;
+}
+.sug-text {
+  font-size: 17px;
+  line-height: 1.4;
+  color: var(--ink);
+  word-break: break-word;
+}
+.sug-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.sug-time {
+  font-variant-numeric: tabular-nums;
+}
+
+.sug-actions {
+  display: inline-flex;
+  gap: 2px;
+}
+.sug-btn {
+  border: 1px solid transparent;
+  background: transparent;
+  font: inherit;
+  font-size: 16px;
+  line-height: 1;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  cursor: pointer;
+  color: var(--muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+.sug-btn:hover {
+  background: var(--bg-soft);
+  color: var(--ink);
+  border-color: var(--hairline);
+}
+.sug-btn:disabled {
+  opacity: 0.4;
+  cursor: wait;
+}
+.sug-btn[aria-pressed="true"] { color: var(--ink); }
+.sug-fav[aria-pressed="true"] {
+  color: #ca8a04;
+  background: rgba(202, 138, 4, 0.1);
+}
+.sug-used[aria-pressed="true"] {
+  color: #4d7c0f;
+  background: rgba(101, 163, 13, 0.1);
+}
+.sug-hide[aria-pressed="true"] {
+  color: #475569;
+  background: rgba(100, 116, 139, 0.12);
+}
+.sug-del:hover {
+  color: #b91c1c;
+  background: rgba(220, 38, 38, 0.08);
+  border-color: rgba(220, 38, 38, 0.2);
+}
+
+@media (prefers-color-scheme: dark) {
+  .sug-fav[aria-pressed="true"]  { color: #fde68a; background: rgba(250, 204, 21, 0.15); }
+  .sug-used[aria-pressed="true"] { color: #bef264; background: rgba(163, 230, 53, 0.15); }
+  .sug-hide[aria-pressed="true"] { color: #cbd5e1; background: rgba(148, 163, 184, 0.15); }
+  .sug-del:hover                 { color: #fca5a5; background: rgba(248, 113, 113, 0.12); border-color: rgba(248, 113, 113, 0.25); }
+  .sug-card.is-favorite          { background: rgba(250, 204, 21, 0.06); }
+}
+
 /* ───────── Audience submission page ───────── */
 body.audience { background: var(--bg-soft); }
 .aud-wrap {

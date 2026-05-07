@@ -63,7 +63,8 @@ firebase deploy --only firestore:rules
 | 0.5.0 | ✅ shipped | Public audience submission page (`/s/?c=…`) with character counter, window state, dedup feedback |
 | 0.5.1 | ✅ shipped | Audience UX polish: live countdown, prominent success state, prompt as visual centerpiece |
 | 0.5.2 | ✅ shipped | Cushion direction flipped (+3s grace AFTER close, not before); seconds shown in hour countdowns; matching server grace |
-| 0.5.3 | | Profanity filter + dedupe + window enforcement audited end-to-end |
+| 0.6.0 | ✅ shipped | Host suggestions feed: live list, filter tabs (All / Favorites / Hidden / Used), search, favorite / hide / mark-used / delete |
+| 0.7.0 | next | Full-screen performer view |
 | 0.6.0 | | Suggestions dashboard (favorite/hide/used/search/filter) |
 | 0.7.0 | | Full-screen performer view |
 | 0.8.0 | | QR code + ensemble share link with expiry |
@@ -71,6 +72,16 @@ firebase deploy --only firestore:rules
 | 1.0.0 | | Polish, mobile QA, Lighthouse pass |
 
 ## Changelog
+
+### v0.6.0 — 2026-05-07
+- **Host suggestions feed** lives on `show.html`, replacing the v0.5.x placeholder.
+  - Live list via `onSnapshot` — new audience submissions appear instantly without refresh.
+  - **Filter tabs:** All / ★ Favorites / Hidden / Used — each shows a count badge that updates live.
+  - **Free-text search** filters by case-insensitive substring of suggestion text.
+  - **Per-suggestion actions:** ★ favorite, ⊘ hide, ○ mark-used, ✕ delete. All write back to Firestore; visual state on the card (gold tint for favorited, dashed border for hidden, line-through for used) reflects flags immediately.
+  - Sorted newest-first client-side (no composite index required).
+  - Empty / no-match / search-empty states each get their own copy.
+- **`host-suggestions.js`** — new module for owner-side suggestion CRUD, sibling to the existing audience-side `submissions.js`.
 
 ### v0.5.2 — 2026-05-07
 - **Cushion direction fix.** Previously the form locked 3 seconds *before* the official close. Flipped to 3 seconds *after* — if the show closes at 2:30:00, the audience form keeps working until 2:30:03. The countdown still ticks down to the *official* close (2:30:00 → "0s") and then hides itself; the cushion stays invisible. This matches the original intent: a quiet generosity for late submitters and slow connections.
