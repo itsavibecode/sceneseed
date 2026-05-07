@@ -64,6 +64,7 @@ firebase deploy --only firestore:rules
 | 0.5.1 | ✅ shipped | Audience UX polish: live countdown, prominent success state, prompt as visual centerpiece |
 | 0.5.2 | ✅ shipped | Cushion direction flipped (+3s grace AFTER close, not before); seconds shown in hour countdowns; matching server grace |
 | 0.6.0 | ✅ shipped | Host suggestions feed: live list, filter tabs (All / Favorites / Hidden / Used), search, favorite / hide / mark-used / delete |
+| 0.6.1 | ✅ shipped | Show page 2-col layout (Suggestions 3fr + Public code 1fr); mobile header stacks; cleanup |
 | 0.7.0 | next | Full-screen performer view |
 | 0.6.0 | | Suggestions dashboard (favorite/hide/used/search/filter) |
 | 0.7.0 | | Full-screen performer view |
@@ -72,6 +73,11 @@ firebase deploy --only firestore:rules
 | 1.0.0 | | Polish, mobile QA, Lighthouse pass |
 
 ## Changelog
+
+### v0.6.1 — 2026-05-07
+- **Show page layout reshuffled.** Suggestions move up to right under the show hero. Suggestions (3fr) and Public code (1fr) live side-by-side in a 2-column grid on desktop (≥900px); on mobile they stack with Suggestions on top. Public code card on desktop is sticky so it stays visible while you scroll a long suggestions list.
+- **Mobile header stacks.** Site-wide top bar — brand on its own line, account email + sign-out below it instead of crammed against the logo on narrow screens.
+- **Removed `llms.txt` link from the landing-page footer.** It's not a user-facing convention; the file still lives at `/llms.txt` for AI crawlers that go looking.
 
 ### v0.6.0 — 2026-05-07
 - **Host suggestions feed** lives on `show.html`, replacing the v0.5.x placeholder.

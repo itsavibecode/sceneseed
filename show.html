@@ -6,7 +6,7 @@
 
 <title>Show — SceneSeed</title>
 <meta name="description" content="Manage an improv show on SceneSeed.">
-<meta name="version" content="0.6.0">
+<meta name="version" content="0.6.1">
 <meta name="theme-color" content="#0f172a">
 <meta name="robots" content="noindex">
 
@@ -61,18 +61,42 @@
     </div>
   </section>
 
-  <section class="dash-section">
-    <h2>Public code</h2>
-    <p class="dialog-sub">Share this code or its URL with the audience. Each show gets a unique code; older shows tend to have shorter color names.</p>
-    <div class="code-row">
-      <code id="show-code" class="big-code">…</code>
-      <span id="show-state" class="show-state">…</span>
-    </div>
-    <p class="dialog-sub" id="public-url-row">
-      <a id="public-url" href="#" target="_blank" rel="noopener"></a>
-      <button type="button" id="copy-url" class="link-btn" style="margin-left:12px">Copy link</button>
-    </p>
-  </section>
+  <div class="show-grid">
+    <section class="dash-section show-grid-main">
+      <div class="dash-section-head">
+        <h2>Suggestions</h2>
+        <span id="sug-summary" class="dialog-sub"></span>
+      </div>
+
+      <div class="sug-toolbar">
+        <div class="sug-tabs" role="tablist" aria-label="Filter suggestions">
+          <button type="button" class="sug-tab is-active" data-filter="all" role="tab" aria-selected="true">All <span class="sug-tab-n" data-count="all">0</span></button>
+          <button type="button" class="sug-tab" data-filter="favorite" role="tab" aria-selected="false">★ Favorites <span class="sug-tab-n" data-count="favorite">0</span></button>
+          <button type="button" class="sug-tab" data-filter="hidden" role="tab" aria-selected="false">Hidden <span class="sug-tab-n" data-count="hidden">0</span></button>
+          <button type="button" class="sug-tab" data-filter="used" role="tab" aria-selected="false">Used <span class="sug-tab-n" data-count="used">0</span></button>
+        </div>
+        <input type="search" id="sug-search" class="sug-search" placeholder="Search suggestions…" autocomplete="off" aria-label="Search suggestions">
+      </div>
+
+      <div id="sug-loading" class="dash-empty"><p>Loading…</p></div>
+      <div id="sug-empty" class="dash-empty" hidden>
+        <p id="sug-empty-msg">No suggestions yet. Share the QR code or link with the audience to get the seeds rolling.</p>
+      </div>
+      <div id="sug-list" class="sug-list" hidden></div>
+    </section>
+
+    <aside class="dash-section show-grid-side">
+      <h2>Public code</h2>
+      <div class="code-row">
+        <code id="show-code" class="big-code">…</code>
+        <span id="show-state" class="show-state">…</span>
+      </div>
+      <p class="public-url-line">
+        <a id="public-url" href="#" target="_blank" rel="noopener"></a>
+      </p>
+      <button type="button" id="copy-url" class="link-btn">Copy link</button>
+    </aside>
+  </div>
 
   <section class="dash-section">
     <h2>Prompt</h2>
@@ -96,29 +120,6 @@
       <dt>Manual override</dt>
       <dd id="w-manual">…</dd>
     </dl>
-  </section>
-
-  <section class="dash-section">
-    <div class="dash-section-head">
-      <h2>Suggestions</h2>
-      <span id="sug-summary" class="dialog-sub"></span>
-    </div>
-
-    <div class="sug-toolbar">
-      <div class="sug-tabs" role="tablist" aria-label="Filter suggestions">
-        <button type="button" class="sug-tab is-active" data-filter="all" role="tab" aria-selected="true">All <span class="sug-tab-n" data-count="all">0</span></button>
-        <button type="button" class="sug-tab" data-filter="favorite" role="tab" aria-selected="false">★ Favorites <span class="sug-tab-n" data-count="favorite">0</span></button>
-        <button type="button" class="sug-tab" data-filter="hidden" role="tab" aria-selected="false">Hidden <span class="sug-tab-n" data-count="hidden">0</span></button>
-        <button type="button" class="sug-tab" data-filter="used" role="tab" aria-selected="false">Used <span class="sug-tab-n" data-count="used">0</span></button>
-      </div>
-      <input type="search" id="sug-search" class="sug-search" placeholder="Search suggestions…" autocomplete="off" aria-label="Search suggestions">
-    </div>
-
-    <div id="sug-loading" class="dash-empty"><p>Loading…</p></div>
-    <div id="sug-empty" class="dash-empty" hidden>
-      <p id="sug-empty-msg">No suggestions yet. Share the QR code or link with the audience to get the seeds rolling.</p>
-    </div>
-    <div id="sug-list" class="sug-list" hidden></div>
   </section>
 </main>
 
@@ -218,7 +219,7 @@
       <a href="/sceneseed/">Home</a>
       <a href="privacy.html">Privacy</a>
     </div>
-    <div>SceneSeed v0.6.0 · MIT</div>
+    <div>SceneSeed v0.6.1 · MIT</div>
   </div>
 </footer>
 

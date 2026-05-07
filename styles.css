@@ -62,6 +62,14 @@ a:hover { color: var(--accent-hover); }
   justify-content: space-between;
   padding-top: 20px;
   padding-bottom: 20px;
+  gap: 12px;
+}
+@media (max-width: 560px) {
+  .site-header .container {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
 }
 .brand {
   display: inline-flex;
@@ -728,6 +736,55 @@ dialog.dialog-lg .dialog-form {
   .window-list { grid-template-columns: 1fr; }
   .window-list dd { margin-bottom: 8px; }
 }
+
+/* ───────── Show page 2-col grid (Suggestions + Public code) ───────── */
+.show-grid {
+  display: grid;
+  gap: 20px;
+  margin-bottom: 16px;
+}
+@media (min-width: 900px) {
+  .show-grid {
+    grid-template-columns: 3fr 1fr;
+    align-items: start;
+  }
+}
+.show-grid-side {
+  /* Side card sticks while suggestions scroll on desktop */
+}
+@media (min-width: 900px) {
+  .show-grid-side {
+    position: sticky;
+    top: 24px;
+  }
+}
+.show-grid-side h2 {
+  font-family: var(--display);
+  font-size: 18px;
+  margin: 0 0 12px;
+}
+.show-grid-side .big-code {
+  font-size: 22px;
+  padding: 8px 12px;
+  word-break: break-all;
+  display: inline-block;
+}
+.show-grid-side .code-row {
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.show-grid-side .public-url-line {
+  margin: 12px 0 8px;
+  font-size: 12px;
+  word-break: break-all;
+  color: var(--muted);
+}
+.show-grid-side #public-url {
+  color: var(--muted);
+  border-bottom: 1px dotted currentColor;
+  word-break: break-all;
+}
+.show-grid-side #public-url:hover { color: var(--ink); }
 
 /* ───────── Suggestions feed (host) ───────── */
 .sug-toolbar {
