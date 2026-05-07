@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Show — SceneSeed</title>
+<meta name="description" content="Manage an improv show on SceneSeed.">
+<meta name="version" content="0.4.0">
+<meta name="theme-color" content="#0f172a">
+<meta name="robots" content="noindex">
+
+<link rel="canonical" href="https://itsavibecode.github.io/sceneseed/show.html">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="manifest" href="site.webmanifest">
+
+<link rel="stylesheet" href="styles.css">
+
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-D04TM51CVE"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-D04TM51CVE');
+</script>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="container">
+    <a class="brand" href="dashboard.html" aria-label="SceneSeed dashboard">
+      <svg viewBox="0 0 100 100" aria-hidden="true">
+        <path d="M 25 55 Q 35 30 60 25 Q 82 23 90 38 Q 88 56 70 60 Q 45 64 25 55 Z" fill="none" stroke-width="6"/>
+        <circle cx="50" cy="46" r="5"/>
+        <circle cx="62" cy="44" r="5"/>
+        <circle cx="74" cy="42" r="5"/>
+        <path d="M 25 55 Q 15 70 7 88" stroke-width="6" fill="none" stroke-linecap="round"/>
+      </svg>
+      SceneSeed
+    </a>
+    <nav class="nav user-nav" aria-label="Account" hidden>
+      <span id="user-email" class="user-email"></span>
+      <button id="signout-btn" type="button" class="link-btn">Sign out</button>
+    </nav>
+  </div>
+</header>
+
+<main id="show-main" class="container dash" hidden>
+  <p class="breadcrumb"><a id="back-to-group" href="dashboard.html">← Back</a></p>
+
+  <section class="dash-hero">
+    <div class="group-head">
+      <div>
+        <h1 id="show-title">…</h1>
+        <p id="show-meta" class="lede"></p>
+      </div>
+      <div class="group-actions">
+        <button type="button" id="edit-btn" class="btn secondary">Edit</button>
+        <button type="button" id="delete-btn" class="btn danger">Delete</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="dash-section">
+    <h2>Public code</h2>
+    <p class="dialog-sub">Share this code or its URL with the audience. Each show gets a unique code; older shows tend to have shorter color names.</p>
+    <div class="code-row">
+      <code id="show-code" class="big-code">…</code>
+      <span id="show-state" class="show-state">…</span>
+    </div>
+    <p class="dialog-sub" id="public-url-row">
+      <a id="public-url" href="#" target="_blank" rel="noopener"></a>
+      <button type="button" id="copy-url" class="link-btn" style="margin-left:12px">Copy link</button>
+    </p>
+  </section>
+
+  <section class="dash-section">
+    <h2>Prompt</h2>
+    <p id="show-prompt" class="lede"></p>
+    <p id="no-prompt" class="dialog-sub" hidden><em>No prompt set. Audience will just see the show title.</em></p>
+  </section>
+
+  <section class="dash-section">
+    <h2>Windows</h2>
+    <dl class="window-list">
+      <dt>Show runs</dt>
+      <dd id="w-show">…</dd>
+      <dt>Submissions open</dt>
+      <dd id="w-open">…</dd>
+      <dt>Submissions close</dt>
+      <dd id="w-close">…</dd>
+      <dt>Timezone</dt>
+      <dd id="w-tz">…</dd>
+      <dt>Max suggestion length</dt>
+      <dd id="w-max">…</dd>
+      <dt>Manual override</dt>
+      <dd id="w-manual">…</dd>
+    </dl>
+  </section>
+
+  <section class="dash-section">
+    <h2>Suggestions</h2>
+    <div class="dash-empty">
+      <p>The suggestions feed lands in <strong>v0.6.0</strong> (audience submission page is v0.5.0).</p>
+    </div>
+  </section>
+</main>
+
+<div id="show-loading" class="dash-loading">
+  <p>Loading…</p>
+</div>
+
+<div id="show-error" class="dash-loading" hidden>
+  <p id="show-error-msg">Show not found.</p>
+  <p><a href="dashboard.html">← Back to dashboard</a></p>
+</div>
+
+<dialog id="edit-dialog" class="dialog dialog-lg" aria-labelledby="edit-title">
+  <form id="edit-form" class="dialog-form" novalidate>
+    <h2 id="edit-title">Edit show</h2>
+
+    <label class="field">
+      <span>Title</span>
+      <input type="text" name="title" required maxlength="120" autocomplete="off">
+    </label>
+    <label class="field">
+      <span>Venue <em>(optional)</em></span>
+      <input type="text" name="venueName" maxlength="120" autocomplete="off">
+    </label>
+    <label class="field">
+      <span>Prompt <em>(optional)</em></span>
+      <textarea name="promptText" maxlength="500" rows="2"></textarea>
+    </label>
+
+    <div class="field-row">
+      <label class="field">
+        <span>Show starts</span>
+        <input type="datetime-local" name="showStartsAt" required>
+      </label>
+      <label class="field">
+        <span>Show ends</span>
+        <input type="datetime-local" name="showEndsAt" required>
+      </label>
+    </div>
+
+    <div class="field-row">
+      <label class="field">
+        <span>Submissions open</span>
+        <input type="datetime-local" name="submissionOpenAt" required>
+      </label>
+      <label class="field">
+        <span>Submissions close</span>
+        <input type="datetime-local" name="submissionCloseAt" required>
+      </label>
+    </div>
+
+    <div class="field-row">
+      <label class="field">
+        <span>Max suggestion length</span>
+        <input type="number" name="maxSuggestionLength" min="20" max="500">
+      </label>
+      <label class="field">
+        <span>Manual override</span>
+        <select name="manualStatus">
+          <option value="auto">Auto (use windows above)</option>
+          <option value="force_open">Force open</option>
+          <option value="force_closed">Force closed</option>
+        </select>
+      </label>
+    </div>
+
+    <label class="field-check">
+      <input type="checkbox" name="profanityFilterEnabled">
+      <span>Filter profanity & hate terms</span>
+    </label>
+    <label class="field-check">
+      <input type="checkbox" name="duplicateDetectionEnabled">
+      <span>Reject duplicate suggestions</span>
+    </label>
+
+    <div class="dialog-actions">
+      <button type="button" class="btn secondary" data-close>Cancel</button>
+      <button type="submit" class="btn">Save</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="delete-dialog" class="dialog" aria-labelledby="del-title">
+  <div class="dialog-form">
+    <h2 id="del-title">Delete show?</h2>
+    <p class="dialog-sub">This permanently deletes <strong id="del-name"></strong> and any suggestions submitted to it. This can't be undone.</p>
+    <div class="dialog-actions">
+      <button type="button" class="btn secondary" data-close>Cancel</button>
+      <button type="button" id="confirm-delete" class="btn danger">Delete show</button>
+    </div>
+  </div>
+</dialog>
+
+<footer class="site-footer">
+  <div class="container">
+    <div>
+      <a href="/sceneseed/">Home</a>
+      <a href="privacy.html">Privacy</a>
+    </div>
+    <div>SceneSeed v0.4.0 · MIT</div>
+  </div>
+</footer>
+
+<script type="module">
+import { onAuth, signOut } from './auth.js';
+import { getShow, updateShow, deleteShow, toInputValue, windowState } from './shows.js';
+
+const code = new URLSearchParams(window.location.search).get('code');
+
+const main = document.getElementById('show-main');
+const loading = document.getElementById('show-loading');
+const errorEl = document.getElementById('show-error');
+const errorMsg = document.getElementById('show-error-msg');
+const userNav = document.querySelector('.user-nav');
+const userEmail = document.getElementById('user-email');
+const signoutBtn = document.getElementById('signout-btn');
+
+const titleEl = document.getElementById('show-title');
+const metaEl = document.getElementById('show-meta');
+const codeEl = document.getElementById('show-code');
+const stateEl = document.getElementById('show-state');
+const publicUrlEl = document.getElementById('public-url');
+const copyUrlBtn = document.getElementById('copy-url');
+const promptEl = document.getElementById('show-prompt');
+const noPromptEl = document.getElementById('no-prompt');
+const wShow = document.getElementById('w-show');
+const wOpen = document.getElementById('w-open');
+const wClose = document.getElementById('w-close');
+const wTz = document.getElementById('w-tz');
+const wMax = document.getElementById('w-max');
+const wManual = document.getElementById('w-manual');
+const backLink = document.getElementById('back-to-group');
+
+const editBtn = document.getElementById('edit-btn');
+const editDialog = document.getElementById('edit-dialog');
+const editForm = document.getElementById('edit-form');
+
+const deleteBtn = document.getElementById('delete-btn');
+const deleteDialog = document.getElementById('delete-dialog');
+const delName = document.getElementById('del-name');
+const confirmDeleteBtn = document.getElementById('confirm-delete');
+
+let currentShow = null;
+
+function showError(msg) {
+  loading.hidden = true;
+  main.hidden = true;
+  errorEl.hidden = false;
+  errorMsg.textContent = msg;
+}
+
+function fmt(ts) {
+  if (!ts) return '—';
+  const d = ts.toDate?.() || new Date(ts);
+  return d.toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+}
+
+function paint(show) {
+  currentShow = show;
+  titleEl.textContent = show.title;
+  document.title = `${show.title} — SceneSeed`;
+
+  const venue = show.venueName ? ` · ${show.venueName}` : '';
+  metaEl.textContent = fmt(show.showStartsAt) + venue;
+
+  codeEl.textContent = show.publicCode;
+  const ws = windowState(show);
+  const labels = { open: 'Open now', before: 'Opens soon', after: 'Closed', closed: 'Closed' };
+  stateEl.textContent = labels[ws.state] || ws.state;
+  stateEl.className = 'show-state state-' + ws.state;
+
+  // Public URL
+  const path = window.location.pathname;
+  const dir = path.substring(0, path.lastIndexOf('/') + 1);
+  const url = window.location.origin + dir + 's/?c=' + encodeURIComponent(show.publicCode);
+  publicUrlEl.href = url;
+  publicUrlEl.textContent = url;
+
+  if (show.promptText) {
+    promptEl.textContent = show.promptText;
+    promptEl.hidden = false;
+    noPromptEl.hidden = true;
+  } else {
+    promptEl.hidden = true;
+    noPromptEl.hidden = false;
+  }
+
+  wShow.textContent = `${fmt(show.showStartsAt)} → ${fmt(show.showEndsAt)}`;
+  wOpen.textContent = fmt(show.submissionOpenAt);
+  wClose.textContent = fmt(show.submissionCloseAt);
+  wTz.textContent = show.timezone || '—';
+  wMax.textContent = `${show.maxSuggestionLength || 140} chars`;
+  wManual.textContent = show.manualStatus === 'auto' ? 'Auto (using window times)' :
+                        show.manualStatus === 'force_open' ? 'Forced OPEN' : 'Forced CLOSED';
+
+  if (show.groupId) {
+    backLink.href = 'group.html?id=' + encodeURIComponent(show.groupId);
+    backLink.textContent = '← Back to group';
+  }
+}
+
+async function load() {
+  if (!code) {
+    showError('No show code in the URL.');
+    return;
+  }
+  try {
+    const show = await getShow(code);
+    if (!show) {
+      showError('Show not found, or you don’t have access to it.');
+      return;
+    }
+    loading.hidden = true;
+    main.hidden = false;
+    paint(show);
+  } catch (err) {
+    console.error(err);
+    showError('Could not load this show.');
+  }
+}
+
+onAuth((user) => {
+  if (!user) {
+    window.location.replace('signin.html');
+    return;
+  }
+  userNav.hidden = false;
+  userEmail.textContent = user.email || '';
+  load();
+});
+
+signoutBtn.addEventListener('click', async () => {
+  await signOut();
+  window.location.replace('./');
+});
+
+copyUrlBtn.addEventListener('click', async () => {
+  try {
+    await navigator.clipboard.writeText(publicUrlEl.href);
+    copyUrlBtn.textContent = 'Copied!';
+    setTimeout(() => (copyUrlBtn.textContent = 'Copy link'), 1500);
+  } catch {
+    alert('Copy failed — select the link manually.');
+  }
+});
+
+// ── Edit ────────────────────────────────────────
+editBtn.addEventListener('click', () => {
+  if (!currentShow) return;
+  const f = editForm.elements;
+  f.title.value = currentShow.title || '';
+  f.venueName.value = currentShow.venueName || '';
+  f.promptText.value = currentShow.promptText || '';
+  f.showStartsAt.value = toInputValue(currentShow.showStartsAt);
+  f.showEndsAt.value = toInputValue(currentShow.showEndsAt);
+  f.submissionOpenAt.value = toInputValue(currentShow.submissionOpenAt);
+  f.submissionCloseAt.value = toInputValue(currentShow.submissionCloseAt);
+  f.maxSuggestionLength.value = currentShow.maxSuggestionLength || 140;
+  f.manualStatus.value = currentShow.manualStatus || 'auto';
+  f.profanityFilterEnabled.checked = currentShow.profanityFilterEnabled !== false;
+  f.duplicateDetectionEnabled.checked = currentShow.duplicateDetectionEnabled !== false;
+  editDialog.showModal();
+  f.title.focus();
+});
+editDialog.querySelector('[data-close]').addEventListener('click', () => editDialog.close());
+
+editForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  if (!currentShow) return;
+  const f = editForm.elements;
+  const submitBtn = editForm.querySelector('button[type="submit"]');
+  submitBtn.disabled = true;
+  try {
+    await updateShow(currentShow.publicCode, {
+      title: f.title.value,
+      venueName: f.venueName.value,
+      promptText: f.promptText.value,
+      showStartsAt: f.showStartsAt.value,
+      showEndsAt: f.showEndsAt.value,
+      submissionOpenAt: f.submissionOpenAt.value,
+      submissionCloseAt: f.submissionCloseAt.value,
+      maxSuggestionLength: f.maxSuggestionLength.value,
+      manualStatus: f.manualStatus.value,
+      profanityFilterEnabled: f.profanityFilterEnabled.checked,
+      duplicateDetectionEnabled: f.duplicateDetectionEnabled.checked
+    });
+    // Re-fetch to refresh derived fields like windowState
+    const fresh = await getShow(currentShow.publicCode);
+    paint(fresh);
+    editDialog.close();
+  } catch (err) {
+    alert('Could not save: ' + (err.message || err));
+    console.error(err);
+  } finally {
+    submitBtn.disabled = false;
+  }
+});
+
+// ── Delete ──────────────────────────────────────
+deleteBtn.addEventListener('click', () => {
+  if (!currentShow) return;
+  delName.textContent = currentShow.title;
+  deleteDialog.showModal();
+});
+deleteDialog.querySelector('[data-close]').addEventListener('click', () => deleteDialog.close());
+
+confirmDeleteBtn.addEventListener('click', async () => {
+  if (!currentShow) return;
+  confirmDeleteBtn.disabled = true;
+  try {
+    await deleteShow(currentShow.publicCode);
+    const groupId = currentShow.groupId;
+    deleteDialog.close();
+    window.location.replace(groupId ? 'group.html?id=' + encodeURIComponent(groupId) : 'dashboard.html');
+  } catch (err) {
+    alert('Could not delete: ' + (err.message || err));
+    console.error(err);
+    confirmDeleteBtn.disabled = false;
+  }
+});
+</script>
+</body>
+</html>

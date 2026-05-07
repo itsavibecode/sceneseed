@@ -6,7 +6,7 @@
 
 <title>Group — SceneSeed</title>
 <meta name="description" content="Manage an improv group on SceneSeed.">
-<meta name="version" content="0.3.1">
+<meta name="version" content="0.4.0">
 <meta name="theme-color" content="#0f172a">
 <meta name="robots" content="noindex">
 
@@ -64,13 +64,84 @@
   <section class="dash-section">
     <div class="dash-section-head">
       <h2>Shows</h2>
-      <button type="button" class="btn" disabled title="Show creation lands in v0.4.0">+ New show</button>
+      <button type="button" id="new-show-btn" class="btn">+ New show</button>
     </div>
-    <div class="dash-empty">
-      <p>No shows yet. Show creation ships in <strong>v0.4.0</strong> — coming next.</p>
+    <div id="shows-loading" class="dash-empty"><p>Loading…</p></div>
+    <div id="shows-empty" class="dash-empty" hidden>
+      <p>No shows yet. Click <strong>+ New show</strong> to schedule one.</p>
     </div>
+    <div id="shows-list" class="shows-list" hidden></div>
   </section>
 </main>
+
+<dialog id="show-dialog" class="dialog dialog-lg" aria-labelledby="show-dialog-title">
+  <form id="show-form" class="dialog-form" novalidate>
+    <h2 id="show-dialog-title">New show</h2>
+    <p class="dialog-sub">Set the title, venue, and the windows. You can edit any of this later.</p>
+
+    <label class="field">
+      <span>Title</span>
+      <input type="text" name="title" required maxlength="120" autocomplete="off" placeholder="Friday Night Improv">
+    </label>
+
+    <label class="field">
+      <span>Venue <em>(optional)</em></span>
+      <input type="text" name="venueName" maxlength="120" autocomplete="off" placeholder="The Annoyance Theatre">
+    </label>
+
+    <label class="field">
+      <span>Prompt <em>(optional, shown to the audience)</em></span>
+      <textarea name="promptText" maxlength="500" rows="2" placeholder="Suggest a one-word location for our next scene."></textarea>
+    </label>
+
+    <div class="field-row">
+      <label class="field">
+        <span>Show starts</span>
+        <input type="datetime-local" name="showStartsAt" required>
+      </label>
+      <label class="field">
+        <span>Show ends</span>
+        <input type="datetime-local" name="showEndsAt" required>
+      </label>
+    </div>
+
+    <div class="field-row">
+      <label class="field">
+        <span>Submissions open</span>
+        <input type="datetime-local" name="submissionOpenAt" required>
+      </label>
+      <label class="field">
+        <span>Submissions close</span>
+        <input type="datetime-local" name="submissionCloseAt" required>
+      </label>
+    </div>
+
+    <div class="field-row">
+      <label class="field">
+        <span>Max suggestion length</span>
+        <input type="number" name="maxSuggestionLength" min="20" max="500" value="140">
+      </label>
+      <label class="field">
+        <span>Timezone</span>
+        <input type="text" name="timezone" readonly>
+      </label>
+    </div>
+
+    <label class="field-check">
+      <input type="checkbox" name="profanityFilterEnabled" checked>
+      <span>Filter profanity & hate terms</span>
+    </label>
+    <label class="field-check">
+      <input type="checkbox" name="duplicateDetectionEnabled" checked>
+      <span>Reject duplicate suggestions</span>
+    </label>
+
+    <div class="dialog-actions">
+      <button type="button" class="btn secondary" data-close>Cancel</button>
+      <button type="submit" class="btn">Create show</button>
+    </div>
+  </form>
+</dialog>
 
 <div id="group-loading" class="dash-loading">
   <p>Loading…</p>
@@ -116,13 +187,14 @@
       <a href="/sceneseed/">Home</a>
       <a href="privacy.html">Privacy</a>
     </div>
-    <div>SceneSeed v0.3.1 · MIT</div>
+    <div>SceneSeed v0.4.0 · MIT</div>
   </div>
 </footer>
 
 <script type="module">
 import { onAuth, signOut } from './auth.js';
 import { getGroup, updateGroup, deleteGroup } from './groups.js';
+import { listShowsByGroup, createShow, roundUpToNext15, toInputValue, windowState } from './shows.js';
 
 const groupId = new URLSearchParams(window.location.search).get('id');
 
@@ -147,6 +219,65 @@ const delName = document.getElementById('del-name');
 const confirmDeleteBtn = document.getElementById('confirm-delete');
 
 let currentGroup = null;
+let unsubShows = null;
+
+const showsList = document.getElementById('shows-list');
+const showsEmpty = document.getElementById('shows-empty');
+const showsLoading = document.getElementById('shows-loading');
+const newShowBtn = document.getElementById('new-show-btn');
+const showDialog = document.getElementById('show-dialog');
+const showForm = document.getElementById('show-form');
+
+function escHtml(s) {
+  return String(s ?? '').replace(/[&<>"']/g, (c) => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  }[c]));
+}
+
+function fmtDateRange(show) {
+  const start = show.showStartsAt?.toDate?.();
+  const end = show.showEndsAt?.toDate?.();
+  if (!start) return '';
+  const sameDay = end && start.toDateString() === end.toDateString();
+  const dateOpts = { weekday: 'short', month: 'short', day: 'numeric' };
+  const timeOpts = { hour: 'numeric', minute: '2-digit' };
+  const dateStr = start.toLocaleDateString(undefined, dateOpts);
+  const startTime = start.toLocaleTimeString(undefined, timeOpts);
+  if (!end) return `${dateStr} · ${startTime}`;
+  const endTime = end.toLocaleTimeString(undefined, timeOpts);
+  return sameDay ? `${dateStr} · ${startTime}–${endTime}` : `${dateStr} ${startTime} → ${end.toLocaleDateString(undefined, dateOpts)} ${endTime}`;
+}
+
+function renderShows(shows) {
+  showsLoading.hidden = true;
+  if (shows.length === 0) {
+    showsEmpty.hidden = false;
+    showsList.hidden = true;
+    showsList.innerHTML = '';
+    return;
+  }
+  showsEmpty.hidden = true;
+  showsList.hidden = false;
+  showsList.innerHTML = shows.map((s) => {
+    const ws = windowState(s);
+    const stateLabel = {
+      open: 'Open now',
+      before: 'Opens soon',
+      after: 'Closed',
+      closed: 'Closed'
+    }[ws.state] || '';
+    return `
+      <a class="show-card" href="show.html?code=${encodeURIComponent(s.publicCode)}">
+        <div class="show-card-head">
+          <h3>${escHtml(s.title)}</h3>
+          <span class="show-state state-${ws.state}">${stateLabel}</span>
+        </div>
+        <p class="show-meta">${escHtml(fmtDateRange(s))}${s.venueName ? ` · ${escHtml(s.venueName)}` : ''}</p>
+        <p class="show-code"><code>${escHtml(s.publicCode)}</code></p>
+      </a>
+    `;
+  }).join('');
+}
 
 function showError(msg) {
   loading.hidden = true;
@@ -181,6 +312,8 @@ async function load() {
     loading.hidden = true;
     main.hidden = false;
     paint(group);
+    if (unsubShows) { unsubShows(); }
+    unsubShows = listShowsByGroup(group.id, renderShows);
   } catch (err) {
     console.error(err);
     showError('Could not load this group.');
@@ -198,8 +331,60 @@ onAuth((user) => {
 });
 
 signoutBtn.addEventListener('click', async () => {
+  if (unsubShows) { unsubShows(); unsubShows = null; }
   await signOut();
   window.location.replace('./');
+});
+
+// ── New show ────────────────────────────────────
+newShowBtn.addEventListener('click', () => {
+  showForm.reset();
+  // Sensible defaults: show starts 24h from now (rounded), 90-min run, window opens 30min before, closes 60min after start.
+  const start = roundUpToNext15(new Date(Date.now() + 24 * 60 * 60 * 1000));
+  const end = new Date(start.getTime() + 90 * 60 * 1000);
+  const open = new Date(start.getTime() - 30 * 60 * 1000);
+  const close = new Date(start.getTime() + 60 * 60 * 1000);
+  showForm.elements.showStartsAt.value = toInputValue(start);
+  showForm.elements.showEndsAt.value = toInputValue(end);
+  showForm.elements.submissionOpenAt.value = toInputValue(open);
+  showForm.elements.submissionCloseAt.value = toInputValue(close);
+  showForm.elements.timezone.value = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+  showForm.elements.maxSuggestionLength.value = 140;
+  showForm.elements.profanityFilterEnabled.checked = true;
+  showForm.elements.duplicateDetectionEnabled.checked = true;
+  showDialog.showModal();
+  showForm.elements.title.focus();
+});
+
+showDialog.querySelector('[data-close]').addEventListener('click', () => showDialog.close());
+
+showForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  if (!currentGroup) return;
+  const submitBtn = showForm.querySelector('button[type="submit"]');
+  submitBtn.disabled = true;
+  try {
+    const code = await createShow(currentGroup.id, {
+      title: showForm.elements.title.value,
+      venueName: showForm.elements.venueName.value,
+      promptText: showForm.elements.promptText.value,
+      showStartsAt: showForm.elements.showStartsAt.value,
+      showEndsAt: showForm.elements.showEndsAt.value,
+      submissionOpenAt: showForm.elements.submissionOpenAt.value,
+      submissionCloseAt: showForm.elements.submissionCloseAt.value,
+      timezone: showForm.elements.timezone.value,
+      maxSuggestionLength: showForm.elements.maxSuggestionLength.value,
+      profanityFilterEnabled: showForm.elements.profanityFilterEnabled.checked,
+      duplicateDetectionEnabled: showForm.elements.duplicateDetectionEnabled.checked
+    });
+    showDialog.close();
+    window.location.href = 'show.html?code=' + encodeURIComponent(code);
+  } catch (err) {
+    alert('Could not create show: ' + (err.message || err));
+    console.error(err);
+  } finally {
+    submitBtn.disabled = false;
+  }
 });
 
 // ── Edit ────────────────────────────────────────

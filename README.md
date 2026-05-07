@@ -59,8 +59,8 @@ firebase deploy --only firestore:rules
 | 0.2.0 | ✅ shipped | Auth (email link + Google), protected dashboard shell, profile auto-create |
 | 0.3.0 | ✅ shipped | Groups CRUD — create, list (live), view, edit, delete |
 | 0.3.1 | ✅ shipped | Fix: groups list stuck on Loading (composite index avoidance + error logging) |
-| 0.4.0 | next | Shows CRUD with public-code generation |
-| 0.5.0 | | Public audience submission page (`/s/?c=…`) with character counter |
+| 0.4.0 | ✅ shipped | Shows CRUD: create / list / view / edit / delete + auto `color-2###` public-code generator |
+| 0.5.0 | next | Public audience submission page (`/s/?c=…`) with character counter |
 | 0.5.1 | | Profanity filter + dedupe + window enforcement audited end-to-end |
 | 0.6.0 | | Suggestions dashboard (favorite/hide/used/search/filter) |
 | 0.7.0 | | Full-screen performer view |
@@ -69,6 +69,15 @@ firebase deploy --only firestore:rules
 | 1.0.0 | | Polish, mobile QA, Lighthouse pass |
 
 ## Changelog
+
+### v0.4.0 — 2026-05-07
+- **Shows CRUD** — full create / list / view / edit / delete under a group
+- `shows.js` data layer with all spec fields (title, venue, prompt, show + submission windows, timezone, manualStatus, max length, profanity + dedupe toggles)
+- **Public-code generator** — `{color}-{decade}{NNN}` (e.g. `coral-2042`); collision-checked against existing event docs (up to 12 retries before failing). Color pool grows by year-tier (2026 short colors only, +5-char in 2027, +6-char in 2028, +7-char in 2029); decade digit rolls every 10 years.
+- New show dialog with sensible defaults (next 24h start, 90-min run, window opens 30min before, closes 60min after start; user's local timezone auto-detected)
+- New `show.html` detail page: prompt, window times, public code, public-URL with copy button, state badge (Open / Opens soon / Closed), Edit + Delete dialogs (Edit also exposes manual override `force_open` / `force_closed`)
+- Group page now lists shows under the group as cards with date range, venue, public code, and live state badge
+- `windowState()` helper (in `shows.js`) computes the same logic the Firestore rules use, so UI status always agrees with what the server enforces
 
 ### v0.3.1 — 2026-05-07
 - Fix: dashboard groups list stayed on "Loading…" forever after creating
