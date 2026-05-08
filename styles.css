@@ -28,6 +28,12 @@
 
 * { box-sizing: border-box; }
 
+/* Force the [hidden] HTML attribute to actually hide, even when our own CSS
+ * sets a display value (e.g. .aud-success { display: flex }). Without this,
+ * class selectors override the user-agent [hidden] rule and `hidden=""`
+ * elements stay visible. */
+[hidden] { display: none !important; }
+
 html, body {
   margin: 0;
   padding: 0;
