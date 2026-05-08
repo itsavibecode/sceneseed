@@ -6,7 +6,7 @@
 
 <title>Group — SceneSeed</title>
 <meta name="description" content="Manage an improv group on SceneSeed.">
-<meta name="version" content="0.9.0">
+<meta name="version" content="0.9.1">
 <meta name="theme-color" content="#0f172a">
 <meta name="robots" content="noindex">
 
@@ -89,6 +89,12 @@
       <input type="text" name="venueName" maxlength="120" autocomplete="off" placeholder="The Annoyance Theatre">
     </label>
 
+    <label class="field">
+      <span>Prompt template <em>(optional)</em></span>
+      <select name="promptTemplate">
+        <option value="">— Pick a template —</option>
+      </select>
+    </label>
     <label class="field">
       <span>Prompt <em>(optional, shown to the audience)</em></span>
       <textarea name="promptText" maxlength="500" rows="2" placeholder="Suggest a one-word location for our next scene."></textarea>
@@ -196,7 +202,7 @@
       <a href="/sceneseed/">Home</a>
       <a href="privacy.html">Privacy</a>
     </div>
-    <div>SceneSeed v0.9.0 · MIT</div>
+    <div>SceneSeed v0.9.1 · MIT</div>
   </div>
 </footer>
 
@@ -204,6 +210,7 @@
 import { onAuth, signOut } from './auth.js';
 import { getGroup, updateGroup, deleteGroup } from './groups.js';
 import { listShowsByGroup, createShow, roundUpToNext15, toInputValue, windowState } from './shows.js';
+import { populatePromptTemplateSelect } from './prompts.js';
 
 const groupId = new URLSearchParams(window.location.search).get('id');
 
@@ -343,6 +350,16 @@ signoutBtn.addEventListener('click', async () => {
   if (unsubShows) { unsubShows(); unsubShows = null; }
   await signOut();
   window.location.replace('./');
+});
+
+// Populate the prompt-template select once at module load.
+populatePromptTemplateSelect(showForm.elements.promptTemplate);
+showForm.elements.promptTemplate.addEventListener('change', () => {
+  const v = showForm.elements.promptTemplate.value;
+  if (v) {
+    showForm.elements.promptText.value = v;
+    showForm.elements.promptTemplate.value = '';
+  }
 });
 
 // ── New show ────────────────────────────────────

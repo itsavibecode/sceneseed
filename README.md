@@ -71,7 +71,8 @@ firebase deploy --only firestore:rules
 | 0.8.1 | ✅ shipped | Fix: audience page bfcache (incomplete — see 0.8.2) |
 | 0.8.2 | ✅ shipped | Fix (real one): `[hidden]` attribute was being overridden by class-level `display: flex` so the success card and form rendered together |
 | 0.9.0 | ✅ shipped | Post-show summary page with stats / favorites / used / top submitters + PNG download + copy-as-text |
-| 1.0.0 | next | Polish + Lighthouse pass |
+| 0.9.1 | ✅ shipped | OG image PNG (was SVG, unsupported by major platforms); SEO title length fix; prompt template picker in show dialogs |
+| 0.10.0 | next | Multiple rounds — host runs different prompts during one show |
 | 0.6.0 | | Suggestions dashboard (favorite/hide/used/search/filter) |
 | 0.7.0 | | Full-screen performer view |
 | 0.8.0 | | QR code + ensemble share link with expiry |
@@ -79,6 +80,12 @@ firebase deploy --only firestore:rules
 | 1.0.0 | | Polish, mobile QA, Lighthouse pass |
 
 ## Changelog
+
+### v0.9.1 — 2026-05-08
+- **OG image is now PNG**, was SVG. Major social platforms (Facebook, X, LinkedIn, Slack, Discord) reject SVG OG images, so the link preview was breaking everywhere except a few trace tools. Generated via a new `.scripts/build-og-image.py` (Pillow) that draws the line-art logo + wordmark at 1200×630. Same script also produces a 180×180 `apple-touch-icon.png` so iOS home-screen pins look right.
+- **SEO title bumped** from 49 chars to 54 — `SceneSeed — Audience Suggestions for Live Improv Shows`. Sits in the 50–60 char sweet spot.
+- **OG meta tightened**: added `og:image:type=image/png`, `og:image:alt`, sized apple-touch-icon link.
+- **Prompt template picker** in both the New show and Edit show dialogs. Pick a category from the dropdown and the prompt textarea fills with the matching `Give us a …` line; you can tweak from there. 22 templates bundled including Location, Relationship, Object, Occupation, Emotion, Genre, One-word suggestion, Personal confession (stage-safe), plus extras for variety. Lives in a tiny `prompts.js` module so adding more is one line.
 
 ### v0.9.0 — 2026-05-08
 - **`summary.html?code=<publicCode>`** — auth-gated post-show recap. Computes stats client-side from the suggestions feed: total submissions, favorites count, "made the stage" count, top submitters (when names were collected), highlighted favorites with submitter attribution, made-the-stage list, and a random sample of also-submitted suggestions for "what we didn't get to" flavor.

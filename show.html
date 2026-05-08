@@ -6,7 +6,7 @@
 
 <title>Show — SceneSeed</title>
 <meta name="description" content="Manage an improv show on SceneSeed.">
-<meta name="version" content="0.9.0">
+<meta name="version" content="0.9.1">
 <meta name="theme-color" content="#0f172a">
 <meta name="robots" content="noindex">
 
@@ -179,6 +179,12 @@
       <input type="text" name="venueName" maxlength="120" autocomplete="off">
     </label>
     <label class="field">
+      <span>Prompt template <em>(optional)</em></span>
+      <select name="promptTemplate">
+        <option value="">— Pick a template —</option>
+      </select>
+    </label>
+    <label class="field">
       <span>Prompt <em>(optional)</em></span>
       <textarea name="promptText" maxlength="500" rows="2"></textarea>
     </label>
@@ -262,7 +268,7 @@
       <a href="/sceneseed/">Home</a>
       <a href="privacy.html">Privacy</a>
     </div>
-    <div>SceneSeed v0.9.0 · MIT</div>
+    <div>SceneSeed v0.9.1 · MIT</div>
   </div>
 </footer>
 
@@ -271,6 +277,7 @@ import { onAuth, signOut } from './auth.js';
 import { getShow, updateShow, deleteShow, toInputValue, windowState } from './shows.js';
 import { listSuggestions, setSuggestionFlag, deleteSuggestion, triggerCsvDownload } from './host-suggestions.js';
 import { generateQrSvg, generateQrPngDataUrl, downloadDataUrl } from './qr.js';
+import { populatePromptTemplateSelect } from './prompts.js';
 
 const code = new URLSearchParams(window.location.search).get('code');
 
@@ -716,6 +723,16 @@ copyUrlBtn.addEventListener('click', async () => {
     setTimeout(() => (copyUrlBtn.textContent = 'Copy link'), 1500);
   } catch {
     alert('Copy failed — select the link manually.');
+  }
+});
+
+// Prompt-template select inside the edit dialog: fills the prompt textarea.
+populatePromptTemplateSelect(editForm.elements.promptTemplate);
+editForm.elements.promptTemplate.addEventListener('change', () => {
+  const v = editForm.elements.promptTemplate.value;
+  if (v) {
+    editForm.elements.promptText.value = v;
+    editForm.elements.promptTemplate.value = '';
   }
 });
 
