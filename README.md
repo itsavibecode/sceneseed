@@ -68,6 +68,7 @@ firebase deploy --only firestore:rules
 | 0.6.2 | ✅ shipped | Optional/required first-name collection per show + CSV export per show + dashboard "Past shows" section with downloads |
 | 0.7.0 | ✅ shipped | Full-screen performer view (auto-fit text, tap/keyboard nav, favorite + mark-used inline) |
 | 0.8.0 | ✅ shipped | Per-show QR code (PNG download) + ensemble share link with auto-expiry |
+| 0.8.1 | ✅ shipped | Fix: audience page was restoring "Got it!" success card from browser bfcache on revisit |
 | 0.9.0 | next | Post-show summary + PNG export |
 | 0.6.0 | | Suggestions dashboard (favorite/hide/used/search/filter) |
 | 0.7.0 | | Full-screen performer view |
@@ -76,6 +77,10 @@ firebase deploy --only firestore:rules
 | 1.0.0 | | Polish, mobile QA, Lighthouse pass |
 
 ## Changelog
+
+### v0.8.1 — 2026-05-08
+- **Fix**: audience page was restoring the "Got it! Thanks for the seed" success card on revisit, even when the audience member hadn't typed anything yet. Cause: browsers' back-forward cache (bfcache) snapshots the entire DOM when you navigate away and slaps it back on return — including the toggled visibility of the success card from a previous submit. Symptom: open `/s/?c=<code>`, submit, navigate elsewhere, come back → the success state is still showing.
+- **Fix**: added a `pageshow` listener on `s/index.html` that forces the form back to clean state every time the page is shown (initial load AND bfcache restore). Now every visit starts on the empty form, regardless of what the previous tab session looked like.
 
 ### v0.8.0 — 2026-05-07
 - **QR code per show**: live SVG preview rendered into the Public-code aside on `show.html`, plus a "Download QR (PNG)" button that hands you a 1024×1024 PNG suitable for projecting, printing, or pasting into a flyer. Library: `qrcode@1.5.3` via `esm.run` CDN, wrapped in a tiny local `qr.js`.

@@ -6,7 +6,7 @@
 
 <title>Suggest a scene — SceneSeed</title>
 <meta name="description" content="Submit a one-line suggestion to the show.">
-<meta name="version" content="0.8.0">
+<meta name="version" content="0.8.1">
 <meta name="theme-color" content="#0f172a">
 <meta name="robots" content="noindex">
 
@@ -363,6 +363,16 @@ form.addEventListener('submit', async (e) => {
 
 againBtn.addEventListener('click', () => {
   showFormAgain();
+});
+
+// Force a clean form state whenever the page is shown. This covers the browser
+// back-forward cache (bfcache) restoring the success card from a previous visit:
+// without this, hitting "back" or reopening the same incognito tab would resume
+// on the success state even though the audience hasn't actually submitted yet.
+window.addEventListener('pageshow', () => {
+  successEl.hidden = true;
+  messageEl.hidden = true;
+  form.hidden = false;
 });
 
 load();
