@@ -3,10 +3,17 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="light dark">
+
+<!-- Perf: warm up TCP/TLS to the third-parties we hit before JS runs. -->
+<link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://www.googletagmanager.com">
+<link rel="dns-prefetch" href="https://firestore.googleapis.com">
+<link rel="dns-prefetch" href="https://identitytoolkit.googleapis.com">
 
 <title>Group — SceneSeed</title>
 <meta name="description" content="Manage an improv group on SceneSeed.">
-<meta name="version" content="0.9.1">
+<meta name="version" content="0.9.2">
 <meta name="theme-color" content="#0f172a">
 <meta name="robots" content="noindex">
 
@@ -202,7 +209,7 @@
       <a href="/sceneseed/">Home</a>
       <a href="privacy.html">Privacy</a>
     </div>
-    <div>SceneSeed v0.9.1 · MIT</div>
+    <div>SceneSeed v0.9.2 · MIT</div>
   </div>
 </footer>
 

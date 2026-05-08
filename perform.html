@@ -3,10 +3,17 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+
+<!-- Perf: warm up TCP/TLS to the third-parties we hit before JS runs. -->
+<link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://www.googletagmanager.com">
+<link rel="dns-prefetch" href="https://firestore.googleapis.com">
+<link rel="dns-prefetch" href="https://identitytoolkit.googleapis.com">
 
 <title>Perform — SceneSeed</title>
 <meta name="description" content="Full-screen performer view of incoming suggestions.">
-<meta name="version" content="0.9.1">
+<meta name="version" content="0.9.2">
 <meta name="theme-color" content="#000000">
 <meta name="robots" content="noindex">
 

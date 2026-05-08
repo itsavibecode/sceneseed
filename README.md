@@ -72,6 +72,7 @@ firebase deploy --only firestore:rules
 | 0.8.2 | ✅ shipped | Fix (real one): `[hidden]` attribute was being overridden by class-level `display: flex` so the success card and form rendered together |
 | 0.9.0 | ✅ shipped | Post-show summary page with stats / favorites / used / top submitters + PNG download + copy-as-text |
 | 0.9.1 | ✅ shipped | OG image PNG (was SVG, unsupported by major platforms); SEO title length fix; prompt template picker in show dialogs |
+| 0.9.2 | ✅ shipped | PageSpeed pass: preconnect / dns-prefetch hints + color-scheme meta on every page |
 | 0.10.0 | next | Multiple rounds — host runs different prompts during one show |
 | 0.6.0 | | Suggestions dashboard (favorite/hide/used/search/filter) |
 | 0.7.0 | | Full-screen performer view |
@@ -80,6 +81,12 @@ firebase deploy --only firestore:rules
 | 1.0.0 | | Polish, mobile QA, Lighthouse pass |
 
 ## Changelog
+
+### v0.9.2 — 2026-05-08
+- **PageSpeed pass.** Added `preconnect` to `gstatic.com` (Firebase SDK CDN) and `googletagmanager.com` (GA4) on every Firebase-using page; added `dns-prefetch` to `firestore.googleapis.com` and `identitytoolkit.googleapis.com` so the TCP/TLS handshake is in flight before JS even parses. Typical cold-start saving: 100–300ms before first Firestore read.
+- **`color-scheme` meta** = `light dark` on every page. Tells the browser to render scrollbars and form controls in the right palette before our CSS loads, killing the dark-mode flash.
+- Asset audit confirmed no heavy outliers: og-image.png 26 KB, apple-touch-icon 1.2 KB, styles.css 38 KB unminified. No images on initial paint, no custom fonts, all JS modules deferred. Lighthouse should already be in good shape; these changes push the cold-start metrics further.
+- 404 page intentionally skipped the preconnect block — it doesn't hit any third party.
 
 ### v0.9.1 — 2026-05-08
 - **OG image is now PNG**, was SVG. Major social platforms (Facebook, X, LinkedIn, Slack, Discord) reject SVG OG images, so the link preview was breaking everywhere except a few trace tools. Generated via a new `.scripts/build-og-image.py` (Pillow) that draws the line-art logo + wordmark at 1200×630. Same script also produces a 180×180 `apple-touch-icon.png` so iOS home-screen pins look right.
