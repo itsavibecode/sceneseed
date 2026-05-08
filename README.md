@@ -70,7 +70,8 @@ firebase deploy --only firestore:rules
 | 0.8.0 | ✅ shipped | Per-show QR code (PNG download) + ensemble share link with auto-expiry |
 | 0.8.1 | ✅ shipped | Fix: audience page bfcache (incomplete — see 0.8.2) |
 | 0.8.2 | ✅ shipped | Fix (real one): `[hidden]` attribute was being overridden by class-level `display: flex` so the success card and form rendered together |
-| 0.9.0 | next | Post-show summary + PNG export |
+| 0.9.0 | ✅ shipped | Post-show summary page with stats / favorites / used / top submitters + PNG download + copy-as-text |
+| 1.0.0 | next | Polish + Lighthouse pass |
 | 0.6.0 | | Suggestions dashboard (favorite/hide/used/search/filter) |
 | 0.7.0 | | Full-screen performer view |
 | 0.8.0 | | QR code + ensemble share link with expiry |
@@ -78,6 +79,13 @@ firebase deploy --only firestore:rules
 | 1.0.0 | | Polish, mobile QA, Lighthouse pass |
 
 ## Changelog
+
+### v0.9.0 — 2026-05-08
+- **`summary.html?code=<publicCode>`** — auth-gated post-show recap. Computes stats client-side from the suggestions feed: total submissions, favorites count, "made the stage" count, top submitters (when names were collected), highlighted favorites with submitter attribution, made-the-stage list, and a random sample of also-submitted suggestions for "what we didn't get to" flavor.
+- **PNG export** — "Download PNG" button uses `html2canvas@1.4.1` (loaded via `esm.run`) to snapshot the summary card at 2× retina resolution. File named `<publicCode>-<slug>-<date>-summary.png`. Pure white background regardless of theme so the export looks the same everywhere it lands.
+- **Copy as text** — plain-text version of the same summary, ready to paste into a recap email or DM.
+- **Linked from**: show page hero (next to Perform/Edit/Delete) and dashboard's Past shows section (next to Open and Download CSV).
+- Print-ready editorial layout: serif display headlines, accent-green section labels, three-up stats block with a top rule, dashed dividers between top-submitter rows, branded footer with public code + project URL.
 
 ### v0.8.2 — 2026-05-08
 - **Fix (the real one)**: the audience page was rendering the form AND the success card on top of each other. Cause: `.aud-success { display: flex }` was overriding the user-agent `[hidden] { display: none }` rule because class selectors beat attribute selectors. So `hidden=""` was set on the success card but it stayed visible. Same potential issue applied to `.aud-name-row`.

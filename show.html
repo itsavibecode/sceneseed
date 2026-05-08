@@ -6,7 +6,7 @@
 
 <title>Show — SceneSeed</title>
 <meta name="description" content="Manage an improv show on SceneSeed.">
-<meta name="version" content="0.8.2">
+<meta name="version" content="0.9.0">
 <meta name="theme-color" content="#0f172a">
 <meta name="robots" content="noindex">
 
@@ -56,6 +56,7 @@
       </div>
       <div class="group-actions">
         <a id="perform-link" class="btn" href="#">Perform</a>
+        <a id="summary-link" class="btn secondary" href="#">Summary</a>
         <button type="button" id="edit-btn" class="btn secondary">Edit</button>
         <button type="button" id="delete-btn" class="btn danger">Delete</button>
       </div>
@@ -261,7 +262,7 @@
       <a href="/sceneseed/">Home</a>
       <a href="privacy.html">Privacy</a>
     </div>
-    <div>SceneSeed v0.8.2 · MIT</div>
+    <div>SceneSeed v0.9.0 · MIT</div>
   </div>
 </footer>
 
@@ -298,6 +299,7 @@ const wManual = document.getElementById('w-manual');
 const backLink = document.getElementById('back-to-group');
 
 const performLink = document.getElementById('perform-link');
+const summaryLink = document.getElementById('summary-link');
 const qrDisplay = document.getElementById('qr-display');
 const qrDownloadBtn = document.getElementById('qr-download');
 const shareEnabledEl = document.getElementById('share-enabled');
@@ -542,6 +544,7 @@ function paint(show) {
   }
 
   performLink.href = 'perform.html?code=' + encodeURIComponent(show.publicCode);
+  summaryLink.href = 'summary.html?code=' + encodeURIComponent(show.publicCode);
 
   paintShareUI(show);
   paintQr(url);

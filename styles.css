@@ -1128,6 +1128,220 @@ dialog.dialog-lg .dialog-form {
   align-items: center;
 }
 
+/* ───────── Post-show summary (summary.html) ───────── */
+.summary-wrap {
+  padding-top: 32px;
+  padding-bottom: 64px;
+}
+.summary-actions {
+  display: flex;
+  gap: 12px;
+  margin: 12px 0 24px;
+  flex-wrap: wrap;
+}
+
+/* The summary-card is the snapshot target for PNG export.
+   Always rendered on a pure white background regardless of theme so
+   the PNG exports look the same everywhere. */
+.summary-card {
+  background: #ffffff;
+  color: #0f172a;
+  border-radius: 18px;
+  border: 1px solid #e2e8f0;
+  padding: 48px 40px 36px;
+  max-width: 720px;
+  margin: 0 auto;
+  box-shadow: 0 4px 24px rgba(15, 23, 42, 0.06);
+  font-family: var(--sans);
+}
+.summary-card h2 {
+  font-family: var(--display);
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #475569;
+  margin: 32px 0 14px;
+}
+
+.summary-header {
+  text-align: center;
+  margin-bottom: 28px;
+}
+.summary-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 16px;
+  color: #0f172a;
+  margin-bottom: 26px;
+  letter-spacing: -0.01em;
+}
+.summary-logo {
+  width: 22px;
+  height: 22px;
+}
+.summary-logo path,
+.summary-logo line { stroke: #0f172a; }
+.summary-logo circle { fill: #0f172a; stroke: none; }
+
+.summary-meta {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #65a30d;
+  margin: 0 0 12px;
+}
+.summary-title {
+  font-family: var(--display);
+  font-size: clamp(32px, 5vw, 44px);
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  margin: 0;
+  line-height: 1.1;
+  color: #0f172a;
+}
+.summary-venue {
+  margin: 12px 0 0;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+.summary-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin: 24px 0 8px;
+  padding: 24px 16px;
+  border-top: 2px solid #0f172a;
+  border-bottom: 1px solid #e2e8f0;
+}
+.summary-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 4px;
+}
+.summary-stat-n {
+  font-family: var(--display);
+  font-size: clamp(36px, 7vw, 56px);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: #0f172a;
+  line-height: 1;
+}
+.summary-stat-l {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+.summary-section {
+  padding: 4px 0;
+}
+.summary-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.summary-list li {
+  font-family: var(--display);
+  font-size: 19px;
+  line-height: 1.35;
+  color: #0f172a;
+  padding-left: 0;
+}
+.summary-name {
+  display: inline-block;
+  margin-left: 6px;
+  font-family: var(--sans);
+  font-style: italic;
+  font-weight: 600;
+  font-size: 14px;
+  color: #65a30d;
+}
+
+.summary-top {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.summary-top li {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 8px 0;
+  border-bottom: 1px dashed #e2e8f0;
+  font-family: var(--sans);
+}
+.summary-top-name {
+  font-weight: 600;
+  font-size: 16px;
+  color: #0f172a;
+}
+.summary-top-count {
+  font-size: 13px;
+  color: #64748b;
+  font-variant-numeric: tabular-nums;
+}
+
+.summary-also {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.summary-also li {
+  font-size: 14px;
+  color: #475569;
+  padding-left: 18px;
+  position: relative;
+}
+.summary-also li::before {
+  content: '·';
+  position: absolute;
+  left: 4px;
+  color: #94a3b8;
+  font-weight: 700;
+}
+
+.summary-empty {
+  text-align: center;
+  font-size: 16px;
+  color: #64748b;
+  padding: 24px 0;
+}
+
+.summary-footer {
+  margin-top: 32px;
+  padding-top: 20px;
+  border-top: 1px solid #e2e8f0;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #94a3b8;
+}
+.summary-footer-dot { margin: 0 6px; }
+
 /* ───────── Performer view (perform.html) ───────── */
 body.perform-body {
   background: #000;
