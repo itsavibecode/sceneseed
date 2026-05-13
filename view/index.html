@@ -12,7 +12,7 @@
 
 <title>Ensemble view — SceneSeed</title>
 <meta name="description" content="Read-only view of audience suggestions for a show.">
-<meta name="version" content="0.9.2">
+<meta name="version" content="0.10.0">
 <meta name="theme-color" content="#0f172a">
 <meta name="robots" content="noindex">
 
@@ -83,7 +83,7 @@
       <a href="/sceneseed/">Home</a>
       <a href="/sceneseed/privacy.html">Privacy</a>
     </div>
-    <div>SceneSeed v0.9.2 · MIT</div>
+    <div>SceneSeed v0.10.0 · MIT</div>
   </div>
 </footer>
 
@@ -130,9 +130,17 @@ function fmtDateTime(ts) {
   return d.toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 }
 
-function renderCard(s) {
+function roundLabelFor(roundId, rounds) {
+  if (!roundId) return '';
+  const r = (rounds || []).find((rr) => rr.id === roundId);
+  return r ? r.label : roundId;
+}
+
+function renderCard(s, rounds) {
   const t = fmtTime(s.createdAt);
   const submitter = s.submitterName ? `<span class="sug-submitter">${escHtml(s.submitterName)}</span>` : '';
+  const rLabel = roundLabelFor(s.roundId, rounds);
+  const roundChip = (rounds.length && s.roundId) ? `<span class="sug-round">${escHtml(rLabel)}</span>` : '';
   const cls = ['sug-card'];
   if (s.isFavorite) cls.push('is-favorite');
   if (s.isUsed) cls.push('is-used');
@@ -141,7 +149,7 @@ function renderCard(s) {
     <article class="${cls.join(' ')}">
       <div class="sug-text">${escHtml(s.text)}</div>
       <div class="sug-meta">
-        <span class="sug-time">${submitter}${escHtml(t)}</span>
+        <span class="sug-time">${roundChip}${submitter}${escHtml(t)}</span>
         <div class="sug-actions">
           ${s.isFavorite ? '<span class="sug-tag">★ favorite</span>' : ''}
           ${s.isUsed ? '<span class="sug-tag">✓ used</span>' : ''}
@@ -150,6 +158,8 @@ function renderCard(s) {
     </article>
   `;
 }
+
+let currentEventRounds = [];
 
 function renderList(list) {
   listLoading.hidden = true;
@@ -170,7 +180,7 @@ function renderList(list) {
   }
   listEmpty.hidden = true;
   listEl.hidden = false;
-  listEl.innerHTML = visible.map(renderCard).join('');
+  listEl.innerHTML = visible.map((s) => renderCard(s, currentEventRounds)).join('');
   summaryEl.textContent = `${visible.length} total`;
 }
 
@@ -186,6 +196,7 @@ async function load() {
       return;
     }
     const event = { id: snap.id, ...snap.data() };
+    currentEventRounds = Array.isArray(event.rounds) ? event.rounds : [];
 
     if (!event.shareEnabled) {
       showLocked("This share isn't active right now. The host can re-enable it from their dashboard.");

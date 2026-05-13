@@ -212,6 +212,79 @@ export async function getAllShowsForUser() {
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 }
 
+// ────────────────────────── Rounds (v0.10.0) ──────────────────────────
+//
+// A "round" is one of multiple prompts a host can cycle through during a
+// single show ("Round 1: Location", "Round 2: Relationship", etc.). Rounds
+// live as an array on the event doc. Only one round is "active" at a time;
+// audience submissions are tagged with the activeRoundId and dedup'd per
+// round (so the same text can be valid in different rounds).
+//
+// Round shape: { id: 'rXXXX', label: 'Round 1', promptText: '…' }
+// Event fields: rounds: array, activeRoundId: string (empty = no round open)
+//
+// All round mutations use read-modify-write — the host is the only writer
+// so the race window is tiny in practice.
+
+function newRoundId() {
+  // 6 random hex chars; collision odds within one show are negligible.
+  return 'r' + Math.random().toString(16).slice(2, 8);
+}
+
+export async function addRound(publicCode, label, promptText) {
+  const trimmedLabel = (label || '').trim() || 'Round';
+  const trimmedPrompt = (promptText || '').trim();
+  if (!trimmedPrompt) throw new Error('Round prompt required');
+  const show = await getShow(publicCode);
+  if (!show) throw new Error('Show not found');
+  const rounds = Array.isArray(show.rounds) ? show.rounds.slice() : [];
+  // Default label "Round N" if user left it blank
+  const finalLabel = label && label.trim() ? trimmedLabel : `Round ${rounds.length + 1}`;
+  const round = { id: newRoundId(), label: finalLabel, promptText: trimmedPrompt };
+  rounds.push(round);
+  await updateDoc(doc(db, 'events', publicCode), { rounds });
+  return round;
+}
+
+export async function updateRound(publicCode, roundId, fields) {
+  const show = await getShow(publicCode);
+  if (!show) throw new Error('Show not found');
+  const rounds = Array.isArray(show.rounds) ? show.rounds.slice() : [];
+  const idx = rounds.findIndex((r) => r.id === roundId);
+  if (idx < 0) throw new Error('Round not found');
+  const next = { ...rounds[idx] };
+  if (fields.label !== undefined) {
+    const t = fields.label.trim();
+    if (!t) throw new Error('Round label required');
+    next.label = t;
+  }
+  if (fields.promptText !== undefined) {
+    const t = fields.promptText.trim();
+    if (!t) throw new Error('Round prompt required');
+    next.promptText = t;
+  }
+  rounds[idx] = next;
+  await updateDoc(doc(db, 'events', publicCode), { rounds });
+}
+
+export async function deleteRound(publicCode, roundId) {
+  const show = await getShow(publicCode);
+  if (!show) throw new Error('Show not found');
+  const rounds = (Array.isArray(show.rounds) ? show.rounds : []).filter((r) => r.id !== roundId);
+  const updates = { rounds };
+  // If the deleted round was the active one, also clear activeRoundId.
+  if (show.activeRoundId === roundId) updates.activeRoundId = '';
+  await updateDoc(doc(db, 'events', publicCode), updates);
+}
+
+export async function setActiveRound(publicCode, roundId) {
+  await updateDoc(doc(db, 'events', publicCode), { activeRoundId: roundId });
+}
+
+export async function closeAllRounds(publicCode) {
+  await updateDoc(doc(db, 'events', publicCode), { activeRoundId: '' });
+}
+
 // ────────────────────────── UI helpers (exported for views) ──────────────────────────
 
 // Round a Date to the next 15-minute mark.

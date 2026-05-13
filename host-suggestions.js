@@ -73,12 +73,22 @@ function csvCell(v) {
 }
 
 export function buildSuggestionsCsv(show, suggestions) {
-  const header = ['Time', 'Name', 'Suggestion', 'Favorite', 'Hidden', 'Used'];
+  // Build a roundId → label lookup so the CSV shows the readable round name.
+  // Falls back to the raw roundId for orphaned suggestions whose round was
+  // deleted from the show.
+  const rounds = Array.isArray(show?.rounds) ? show.rounds : [];
+  const roundLabel = (id) => {
+    if (!id) return '';
+    const r = rounds.find((rr) => rr.id === id);
+    return r ? r.label : id;
+  };
+  const header = ['Time', 'Round', 'Name', 'Suggestion', 'Favorite', 'Hidden', 'Used'];
   const lines = [header.map(csvCell).join(',')];
   for (const s of suggestions) {
     const t = s.createdAt?.toDate?.()?.toISOString() ?? '';
     lines.push([
       t,
+      roundLabel(s.roundId),
       s.submitterName || '',
       s.text || '',
       s.isFavorite ? 'yes' : '',

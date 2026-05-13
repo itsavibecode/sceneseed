@@ -12,7 +12,7 @@
 
 <title>Suggest a scene — SceneSeed</title>
 <meta name="description" content="Submit a one-line suggestion to the show.">
-<meta name="version" content="0.9.2">
+<meta name="version" content="0.10.0">
 <meta name="theme-color" content="#0f172a">
 <meta name="robots" content="noindex">
 
@@ -91,7 +91,7 @@
 </div>
 
 <script type="module">
-import { doc, getDoc } from 'https://www.gstatic.com/firebasejs/12.12.1/firebase-firestore.js';
+import { doc, onSnapshot } from 'https://www.gstatic.com/firebasejs/12.12.1/firebase-firestore.js';
 import { db } from '../firebase-config.js';
 import { submitSuggestion } from '../submissions.js';
 import { windowState } from '../shows.js';
@@ -188,6 +188,23 @@ function audienceWindowState() {
 
 function refreshState() {
   if (!event) return false;
+  // Rounds gate: if the show has rounds but none is active, lock the form
+  // regardless of the time-based window. Server rules enforce this too.
+  const rounds = Array.isArray(event.rounds) ? event.rounds : [];
+  if (rounds.length > 0 && !event.activeRoundId) {
+    stateEl.hidden = false;
+    stateEl.dataset.kind = 'closed';
+    stateEl.textContent = 'Waiting for the next round…';
+    countdownEl.hidden = true;
+    submitBtn.disabled = true;
+    textArea.disabled = true;
+    if (nameInput) nameInput.disabled = true;
+    return false;
+  }
+  // Re-enable the name input on every state refresh in case we previously
+  // disabled it during a rounds-locked phase.
+  if (nameInput) nameInput.disabled = false;
+
   const ws = audienceWindowState();
   stateEl.hidden = false;
   stateEl.dataset.kind = ws.state;
@@ -260,28 +277,39 @@ function showNotFound(msg) {
   if (msg) notFoundMsg.textContent = msg;
 }
 
-async function load() {
-  if (!code) {
-    showNotFound("This link is missing a show code.");
-    return;
-  }
-  try {
-    const snap = await getDoc(doc(db, 'events', code));
-    if (!snap.exists()) {
-      showNotFound("That show couldn't be found. Double-check the link.");
-      return;
-    }
-    event = { id: snap.id, ...snap.data() };
-    document.title = `${event.title || 'Suggestion'} — SceneSeed`;
-    // Visual hierarchy: prompt is the headline (the actual question).
-    // Show title becomes a small label above it, so the audience knows
-    // which show they're submitting to without competing for attention.
-    if (event.promptText) {
-      labelEl.textContent = event.title || '';
-      labelEl.hidden = !event.title;
-      headlineEl.textContent = event.promptText;
+// Apply event data to the visible header (label, headline, code, max length,
+// name field state). Called on first snapshot AND on every subsequent live
+// update — so when the host opens a new round, the audience's headline switches
+// without a manual refresh.
+function paintEventDisplay() {
+  document.title = `${event.title || 'Suggestion'} — SceneSeed`;
+
+    // ─── Rounds-aware prompt selection (v0.10.0+) ─────────
+    // If the show has rounds, the active round's prompt is the headline and
+    // the round label rides along with the show title above it. If rounds
+    // exist but none is active, the audience sees a "Waiting for the next
+    // round" lock (handled in refreshState below).
+    const rounds = Array.isArray(event.rounds) ? event.rounds : [];
+    const activeRound = rounds.find((r) => r.id === event.activeRoundId) || null;
+    const effectivePrompt = activeRound
+      ? activeRound.promptText
+      : (rounds.length === 0 ? event.promptText : '');
+
+    const labelBits = [event.title, activeRound ? activeRound.label : ''].filter(Boolean);
+    if (labelBits.length) {
+      labelEl.textContent = labelBits.join(' · ');
+      labelEl.hidden = false;
     } else {
       labelEl.hidden = true;
+    }
+
+    if (effectivePrompt) {
+      headlineEl.textContent = effectivePrompt;
+    } else if (rounds.length > 0) {
+      // Rounds defined but none active — headline reads as the show title
+      // (the lock screen will explain there's no round open right now).
+      headlineEl.textContent = event.title || '(untitled show)';
+    } else {
       headlineEl.textContent = event.title || '(untitled show)';
     }
     codeLabel.textContent = event.publicCode;
@@ -302,14 +330,38 @@ async function load() {
       nameHint.textContent = mode === 'required' ? '(required)' : '(optional)';
     }
 
-    loading.hidden = true;
-    main.hidden = false;
-    refreshState();
-    startTicking();
-  } catch (err) {
-    console.error(err);
-    showNotFound("Couldn't load this show. Try refreshing the page.");
+}
+
+let firstSnap = true;
+function load() {
+  if (!code) {
+    showNotFound("This link is missing a show code.");
+    return;
   }
+  // Live subscription on the event doc — when the host opens a new round
+  // or changes the prompt, the audience's headline updates in place.
+  onSnapshot(
+    doc(db, 'events', code),
+    (snap) => {
+      if (!snap.exists()) {
+        showNotFound("That show couldn't be found. Double-check the link.");
+        return;
+      }
+      event = { id: snap.id, ...snap.data() };
+      paintEventDisplay();
+      refreshState();
+      if (firstSnap) {
+        firstSnap = false;
+        loading.hidden = true;
+        main.hidden = false;
+        startTicking();
+      }
+    },
+    (err) => {
+      console.error(err);
+      showNotFound("Couldn't load this show. Try refreshing the page.");
+    }
+  );
 }
 
 function updateCounter() {
@@ -343,7 +395,7 @@ form.addEventListener('submit', async (e) => {
   const wasLabel = submitBtn.textContent;
   submitBtn.textContent = 'Sending…';
   try {
-    await submitSuggestion(event.publicCode, text, name);
+    await submitSuggestion(event.publicCode, text, name, event.activeRoundId || '');
     showSuccess();
   } catch (err) {
     if (err.code === 'duplicate') {

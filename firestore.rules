@@ -42,6 +42,26 @@ service cloud.firestore {
           && request.time <= event.submissionCloseAt + duration.value(3, 's'));
     }
 
+    // Round-aware roundId check (v0.10.0+):
+    //   - if the event has NO rounds, the suggestion's roundId must be empty
+    //   - if the event has rounds, the activeRoundId must be set and the
+    //     suggestion must declare that exact roundId
+    // This is enforced server-side; the audience page also gates the form
+    // client-side, but this is the real check.
+    function roundIdValid(publicCode) {
+      let event = getEvent(publicCode);
+      let req = request.resource.data;
+      let rounds = event.get('rounds', []);
+      let active = event.get('activeRoundId', '');
+      return req.roundId is string
+        && req.roundId.size() <= 30
+        && (
+          (rounds.size() == 0 && req.roundId == '')
+          ||
+          (rounds.size() > 0 && active != '' && req.roundId == active)
+        );
+    }
+
     // ───────── Profiles ─────────
 
     match /profiles/{uid} {
@@ -100,6 +120,7 @@ service cloud.firestore {
         //     nameCollection is 'required', it must be non-empty
         //   - Doc ID is a hash of normalized text → duplicates fail naturally
         allow create: if isWindowOpen(publicCode)
+                      && roundIdValid(publicCode)
                       && request.resource.data.text is string
                       && request.resource.data.text.size() > 0
                       && request.resource.data.text.size() <= getEvent(publicCode).maxSuggestionLength

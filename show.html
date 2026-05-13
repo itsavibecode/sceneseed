@@ -13,7 +13,7 @@
 
 <title>Show — SceneSeed</title>
 <meta name="description" content="Manage an improv show on SceneSeed.">
-<meta name="version" content="0.9.2">
+<meta name="version" content="0.10.0">
 <meta name="theme-color" content="#0f172a">
 <meta name="robots" content="noindex">
 
@@ -70,6 +70,15 @@
     </div>
   </section>
 
+  <section class="dash-section rounds-section">
+    <div class="dash-section-head">
+      <h2>Rounds</h2>
+      <button type="button" id="add-round-btn" class="btn">+ Add round</button>
+    </div>
+    <p class="dialog-sub" id="rounds-help">Rounds are optional. Add one to run multiple prompts in a single show — like "Round 1: Location", "Round 2: Relationship". Without rounds, the show uses the single prompt below.</p>
+    <div id="rounds-list" class="rounds-list" hidden></div>
+  </section>
+
   <div class="show-grid">
     <section class="dash-section show-grid-main">
       <div class="dash-section-head">
@@ -84,6 +93,9 @@
           <button type="button" class="sug-tab" data-filter="hidden" role="tab" aria-selected="false">Hidden <span class="sug-tab-n" data-count="hidden">0</span></button>
           <button type="button" class="sug-tab" data-filter="used" role="tab" aria-selected="false">Used <span class="sug-tab-n" data-count="used">0</span></button>
         </div>
+        <select id="sug-round-filter" class="sug-round-filter" hidden aria-label="Filter by round">
+          <option value="">All rounds</option>
+        </select>
         <input type="search" id="sug-search" class="sug-search" placeholder="Search suggestions…" autocomplete="off" aria-label="Search suggestions">
         <button type="button" id="sug-download" class="link-btn sug-download" title="Download all suggestions as CSV">Download CSV</button>
       </div>
@@ -258,6 +270,31 @@
   </form>
 </dialog>
 
+<dialog id="round-dialog" class="dialog" aria-labelledby="round-dialog-title">
+  <form id="round-form" class="dialog-form" novalidate>
+    <h2 id="round-dialog-title">Add round</h2>
+    <p class="dialog-sub" id="round-dialog-sub">Each round is one prompt. The host opens one round at a time during the show.</p>
+    <label class="field">
+      <span>Label</span>
+      <input type="text" name="label" maxlength="60" autocomplete="off" placeholder="Round 1">
+    </label>
+    <label class="field">
+      <span>Prompt template <em>(optional)</em></span>
+      <select name="promptTemplate">
+        <option value="">— Pick a template —</option>
+      </select>
+    </label>
+    <label class="field">
+      <span>Prompt</span>
+      <textarea name="promptText" maxlength="500" rows="2" required placeholder="Give us a location."></textarea>
+    </label>
+    <div class="dialog-actions">
+      <button type="button" class="btn secondary" data-close>Cancel</button>
+      <button type="submit" class="btn">Save round</button>
+    </div>
+  </form>
+</dialog>
+
 <dialog id="delete-dialog" class="dialog" aria-labelledby="del-title">
   <div class="dialog-form">
     <h2 id="del-title">Delete show?</h2>
@@ -275,13 +312,14 @@
       <a href="/sceneseed/">Home</a>
       <a href="privacy.html">Privacy</a>
     </div>
-    <div>SceneSeed v0.9.2 · MIT</div>
+    <div>SceneSeed v0.10.0 · MIT</div>
   </div>
 </footer>
 
 <script type="module">
 import { onAuth, signOut } from './auth.js';
-import { getShow, updateShow, deleteShow, toInputValue, windowState } from './shows.js';
+import { getShow, updateShow, deleteShow, toInputValue, windowState,
+         addRound, updateRound, deleteRound, setActiveRound, closeAllRounds } from './shows.js';
 import { listSuggestions, setSuggestionFlag, deleteSuggestion, triggerCsvDownload } from './host-suggestions.js';
 import { generateQrSvg, generateQrPngDataUrl, downloadDataUrl } from './qr.js';
 import { populatePromptTemplateSelect } from './prompts.js';
@@ -346,6 +384,15 @@ const sugSearch = document.getElementById('sug-search');
 const sugSummary = document.getElementById('sug-summary');
 const sugTabs = document.querySelectorAll('.sug-tab');
 const sugDownload = document.getElementById('sug-download');
+const sugRoundFilter = document.getElementById('sug-round-filter');
+
+const roundsList = document.getElementById('rounds-list');
+const addRoundBtn = document.getElementById('add-round-btn');
+const roundDialog = document.getElementById('round-dialog');
+const roundForm = document.getElementById('round-form');
+const roundDialogTitle = document.getElementById('round-dialog-title');
+let editingRoundId = null;            // null = new round; otherwise the id being edited
+let activeRoundFilter = '';           // '' = all rounds
 
 function showError(msg) {
   loading.hidden = true;
@@ -386,11 +433,14 @@ function renderCard(s) {
   const submitterChip = s.submitterName
     ? `<span class="sug-submitter">${escHtml(s.submitterName)}</span>`
     : '';
+  const roundChip = (currentShow?.rounds?.length && s.roundId)
+    ? `<span class="sug-round">${escHtml(roundLabelFor(s.roundId))}</span>`
+    : '';
   return `
     <article class="${cls.join(' ')}" data-id="${escHtml(s.id)}">
       <div class="sug-text">${escHtml(s.text)}</div>
       <div class="sug-meta">
-        <span class="sug-time">${submitterChip}${escHtml(time)}</span>
+        <span class="sug-time">${roundChip}${submitterChip}${escHtml(time)}</span>
         <div class="sug-actions">
           <button type="button" class="sug-btn sug-fav"  data-action="favorite" title="${s.isFavorite ? 'Unfavorite' : 'Favorite'}" aria-label="${s.isFavorite ? 'Unfavorite' : 'Favorite'}" aria-pressed="${!!s.isFavorite}">${s.isFavorite ? '★' : '☆'}</button>
           <button type="button" class="sug-btn sug-hide" data-action="hidden"   title="${s.isHidden   ? 'Unhide'     : 'Hide'}"      aria-label="${s.isHidden   ? 'Unhide'     : 'Hide'}"      aria-pressed="${!!s.isHidden}">${s.isHidden ? '↺' : '⊘'}</button>
@@ -419,6 +469,12 @@ function renderSuggestions() {
   if (activeFilter === 'favorite') filtered = filtered.filter((s) => s.isFavorite);
   else if (activeFilter === 'hidden') filtered = filtered.filter((s) => s.isHidden);
   else if (activeFilter === 'used') filtered = filtered.filter((s) => s.isUsed);
+
+  if (activeRoundFilter === '__none__') {
+    filtered = filtered.filter((s) => !s.roundId);
+  } else if (activeRoundFilter) {
+    filtered = filtered.filter((s) => s.roundId === activeRoundFilter);
+  }
 
   if (searchTerm) {
     const t = searchTerm.toLowerCase();
@@ -562,7 +618,157 @@ function paint(show) {
 
   paintShareUI(show);
   paintQr(url);
+  paintRounds(show);
 }
+
+// ── Rounds panel ────────────────────────────────────────
+function roundLabelFor(roundId) {
+  if (!roundId || !currentShow) return '';
+  const r = (currentShow.rounds || []).find((rr) => rr.id === roundId);
+  return r ? r.label : roundId;
+}
+
+function paintRounds(show) {
+  const rounds = Array.isArray(show.rounds) ? show.rounds : [];
+  if (rounds.length === 0) {
+    roundsList.hidden = true;
+    roundsList.innerHTML = '';
+    sugRoundFilter.hidden = true;
+    return;
+  }
+  roundsList.hidden = false;
+  const active = show.activeRoundId || '';
+  roundsList.innerHTML = rounds.map((r, i) => {
+    const isActive = r.id === active;
+    const cls = ['round-card'];
+    if (isActive) cls.push('is-active');
+    return `
+      <div class="${cls.join(' ')}" data-id="${escHtml(r.id)}">
+        <div class="round-card-info">
+          <h3>${escHtml(r.label || `Round ${i + 1}`)}${isActive ? ' <span class="round-active-badge">Active</span>' : ''}</h3>
+          <p class="round-card-prompt">${escHtml(r.promptText)}</p>
+        </div>
+        <div class="round-card-actions">
+          ${isActive
+            ? `<button type="button" class="btn secondary" data-action="close-round">Close round</button>`
+            : `<button type="button" class="btn" data-action="open-round">Open this round</button>`}
+          <button type="button" class="link-btn" data-action="edit-round">Edit</button>
+          <button type="button" class="link-btn round-delete" data-action="delete-round">Delete</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  // Populate the round filter for the suggestions feed
+  sugRoundFilter.hidden = false;
+  const prev = sugRoundFilter.value;
+  while (sugRoundFilter.options.length > 1) sugRoundFilter.remove(1);
+  for (const r of rounds) {
+    const opt = document.createElement('option');
+    opt.value = r.id;
+    opt.textContent = r.label || r.id;
+    sugRoundFilter.appendChild(opt);
+  }
+  if (allSuggestions.some((s) => !s.roundId)) {
+    const opt = document.createElement('option');
+    opt.value = '__none__';
+    opt.textContent = '(no round)';
+    sugRoundFilter.appendChild(opt);
+  }
+  sugRoundFilter.value = prev;
+}
+
+roundsList.addEventListener('click', async (e) => {
+  const btn = e.target.closest('button[data-action]');
+  if (!btn || !currentShow) return;
+  const card = btn.closest('.round-card');
+  if (!card) return;
+  const roundId = card.dataset.id;
+  const action = btn.dataset.action;
+  const round = (currentShow.rounds || []).find((r) => r.id === roundId);
+  if (!round) return;
+
+  btn.disabled = true;
+  try {
+    if (action === 'open-round') {
+      await setActiveRound(currentShow.publicCode, roundId);
+      currentShow = { ...currentShow, activeRoundId: roundId };
+      paintRounds(currentShow);
+    } else if (action === 'close-round') {
+      await closeAllRounds(currentShow.publicCode);
+      currentShow = { ...currentShow, activeRoundId: '' };
+      paintRounds(currentShow);
+    } else if (action === 'edit-round') {
+      openRoundDialog(round);
+    } else if (action === 'delete-round') {
+      if (!window.confirm(`Delete "${round.label}"? Suggestions submitted under this round will stay, but lose their round label.`)) return;
+      await deleteRound(currentShow.publicCode, roundId);
+      const fresh = await getShow(currentShow.publicCode);
+      currentShow = fresh;
+      paintRounds(fresh);
+      renderSuggestions();
+    }
+  } catch (err) {
+    alert(`Round action failed: ${err.message || err}`);
+    console.error(err);
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+function openRoundDialog(round) {
+  editingRoundId = round ? round.id : null;
+  roundDialogTitle.textContent = round ? 'Edit round' : 'Add round';
+  roundForm.elements.label.value = round?.label || `Round ${(currentShow?.rounds?.length || 0) + 1}`;
+  roundForm.elements.promptText.value = round?.promptText || '';
+  roundForm.elements.promptTemplate.value = '';
+  roundDialog.showModal();
+  roundForm.elements.label.focus();
+}
+
+addRoundBtn.addEventListener('click', () => openRoundDialog(null));
+roundDialog.querySelector('[data-close]').addEventListener('click', () => roundDialog.close());
+
+populatePromptTemplateSelect(roundForm.elements.promptTemplate);
+roundForm.elements.promptTemplate.addEventListener('change', () => {
+  const v = roundForm.elements.promptTemplate.value;
+  if (v) {
+    roundForm.elements.promptText.value = v;
+    roundForm.elements.promptTemplate.value = '';
+  }
+});
+
+roundForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  if (!currentShow) return;
+  const label = roundForm.elements.label.value.trim();
+  const promptText = roundForm.elements.promptText.value.trim();
+  if (!promptText) return;
+  const submitBtn = roundForm.querySelector('button[type="submit"]');
+  submitBtn.disabled = true;
+  try {
+    if (editingRoundId) {
+      await updateRound(currentShow.publicCode, editingRoundId, { label, promptText });
+    } else {
+      await addRound(currentShow.publicCode, label, promptText);
+    }
+    const fresh = await getShow(currentShow.publicCode);
+    currentShow = fresh;
+    paintRounds(fresh);
+    renderSuggestions();
+    roundDialog.close();
+  } catch (err) {
+    alert(`Couldn't save round: ${err.message || err}`);
+    console.error(err);
+  } finally {
+    submitBtn.disabled = false;
+  }
+});
+
+sugRoundFilter.addEventListener('change', () => {
+  activeRoundFilter = sugRoundFilter.value;
+  renderSuggestions();
+});
 
 // ── QR code ─────────────────────────────────────────────
 let lastQrUrl = '';

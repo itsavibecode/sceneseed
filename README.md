@@ -73,7 +73,8 @@ firebase deploy --only firestore:rules
 | 0.9.0 | ✅ shipped | Post-show summary page with stats / favorites / used / top submitters + PNG download + copy-as-text |
 | 0.9.1 | ✅ shipped | OG image PNG (was SVG, unsupported by major platforms); SEO title length fix; prompt template picker in show dialogs |
 | 0.9.2 | ✅ shipped | PageSpeed pass: preconnect / dns-prefetch hints + color-scheme meta on every page |
-| 0.10.0 | next | Multiple rounds — host runs different prompts during one show |
+| 0.10.0 | ✅ shipped | Multiple rounds per show + live audience updates when host opens a new round |
+| 0.10.1 | next | Polish + bug fixes from live testing |
 | 0.6.0 | | Suggestions dashboard (favorite/hide/used/search/filter) |
 | 0.7.0 | | Full-screen performer view |
 | 0.8.0 | | QR code + ensemble share link with expiry |
@@ -81,6 +82,16 @@ firebase deploy --only firestore:rules
 | 1.0.0 | | Polish, mobile QA, Lighthouse pass |
 
 ## Changelog
+
+### v0.10.0 — 2026-05-08
+- **Multiple Rounds.** Each show can now have multiple prompts (rounds) that the host opens one at a time. Example: Round 1 "Give us a location.", Round 2 "Give us a relationship.", Round 3 "Give us a genre.", Round 4 "Give us a final line of dialogue."
+- **Schema additions.** `event.rounds` (array of `{ id, label, promptText }`) and `event.activeRoundId` (which round is currently open, or empty). Suggestions get a new `roundId` field tagging which round they were submitted under. **Backwards compatible**: existing shows have no rounds and behave exactly as before.
+- **Per-round dedup.** Dedup hash now incorporates the roundId so "warm" can be a valid Emotion AND a valid One-word. Legacy shows with no rounds still dedup on text alone (same hash as v0.5+).
+- **Host UI** on `show.html` gets a new "Rounds" panel right under the hero: list of rounds with per-round Open / Close / Edit / Delete, an Add round button that opens a dialog (with the prompt template picker available). Opening a new round automatically closes the previous one (server enforces by activeRoundId being scalar).
+- **Audience UI** on `/s/?c=<code>` now subscribes live to the event doc via `onSnapshot`. When the host opens a new round, the audience's headline switches in place — no manual refresh needed. If the show has rounds but none is active, the audience sees a "Waiting for the next round…" lock screen.
+- **Round badge** on every suggestion card in the host dashboard, ensemble view, and performer view. Per-round filter dropdown added to the host suggestions toolbar.
+- **CSV export** now includes a Round column with the human-readable label.
+- **Firestore rules updated** — `roundIdValid()` helper validates: when an event has rounds, the suggestion's roundId must match `activeRoundId`; when it has none, roundId must be empty. **Re-publish required.**
 
 ### v0.9.2 — 2026-05-08
 - **PageSpeed pass.** Added `preconnect` to `gstatic.com` (Firebase SDK CDN) and `googletagmanager.com` (GA4) on every Firebase-using page; added `dns-prefetch` to `firestore.googleapis.com` and `identitytoolkit.googleapis.com` so the TCP/TLS handshake is in flight before JS even parses. Typical cold-start saving: 100–300ms before first Firestore read.

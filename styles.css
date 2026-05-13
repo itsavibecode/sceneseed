@@ -1042,6 +1042,121 @@ dialog.dialog-lg .dialog-form {
   margin-right: 8px;
 }
 
+/* Round chip on a suggestion card — small pill before submitter/time. */
+.sug-round {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--bg-soft);
+  color: var(--muted);
+  border: 1px solid var(--hairline);
+  margin-right: 8px;
+  vertical-align: middle;
+}
+
+/* Round filter select inside the suggestions toolbar. */
+.sug-round-filter {
+  font: inherit;
+  font-size: 14px;
+  padding: 6px 10px;
+  border: 1px solid var(--hairline);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--ink);
+}
+.sug-round-filter:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+  border-color: transparent;
+}
+
+/* ───────── Rounds panel (show.html) ───────── */
+.rounds-section { /* inherits .dash-section */ }
+.rounds-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 14px;
+}
+.round-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 18px;
+  border: 1px solid var(--hairline);
+  border-radius: 12px;
+  background: var(--bg);
+  flex-wrap: wrap;
+  transition: border-color 0.15s, background 0.15s;
+}
+.round-card.is-active {
+  border-color: var(--accent);
+  background: rgba(101, 163, 13, 0.06);
+}
+@media (prefers-color-scheme: dark) {
+  .round-card.is-active { background: rgba(163, 230, 53, 0.07); }
+}
+.round-card-info {
+  flex: 1 1 240px;
+  min-width: 0;
+}
+.round-card-info h3 {
+  font-family: var(--display);
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  margin: 0;
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.round-active-badge {
+  display: inline-block;
+  font-family: var(--sans);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+}
+.round-card-prompt {
+  margin: 4px 0 0;
+  font-size: 14px;
+  color: var(--muted);
+}
+.round-card-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.round-card-actions .btn { padding: 8px 14px; }
+.round-delete:hover { color: #b91c1c; }
+@media (prefers-color-scheme: dark) {
+  .round-delete:hover { color: #fca5a5; }
+}
+
+/* ───────── Performer view: round label above suggestion ───────── */
+.perform-round {
+  margin: 0 0 8px;
+  font-family: var(--sans);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--accent);
+  text-align: center;
+}
+
 /* Download-CSV link in suggestions toolbar. */
 .sug-download {
   margin-left: auto;
