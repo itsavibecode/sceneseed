@@ -144,19 +144,24 @@ def build_og_image(out_path):
     img.save(out_path, 'PNG', optimize=True)
     print(f"wrote {out_path}  ({W}×{H})")
 
-# ─── apple-touch-icon (180×180) ──────────────────────────────────────
+# ─── Square icon (any size; used for apple-touch-icon and PWA icons) ─
 
-def build_apple_touch_icon(out_path):
-    SIZE = 180
-    img = Image.new('RGB', (SIZE, SIZE), 'white')
+def build_square_icon(out_path, size, line_width=None):
+    img = Image.new('RGB', (size, size), 'white')
     d = ImageDraw.Draw(img)
-    draw_leaf_logo(d, cx=SIZE/2, cy=SIZE/2, scale=1.45, color=INK, line_width=8)
+    # Scale the logo to fill ~80% of the canvas
+    scale = (size / 100) * 0.8
+    lw = line_width if line_width is not None else max(4, int(scale * 3))
+    draw_leaf_logo(d, cx=size / 2, cy=size / 2, scale=scale, color=INK, line_width=lw)
     img.save(out_path, 'PNG', optimize=True)
-    print(f"wrote {out_path}  ({SIZE}×{SIZE})")
+    print(f"wrote {out_path}  ({size}×{size})")
 
 # ─── Entry point ─────────────────────────────────────────────────────
 
 if __name__ == '__main__':
     here = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     build_og_image(os.path.join(here, 'og-image.png'))
-    build_apple_touch_icon(os.path.join(here, 'apple-touch-icon.png'))
+    build_square_icon(os.path.join(here, 'apple-touch-icon.png'), 180)
+    build_square_icon(os.path.join(here, 'icon-192.png'), 192)
+    build_square_icon(os.path.join(here, 'icon-512.png'), 512)
+    build_square_icon(os.path.join(here, 'icon-maskable-512.png'), 512, line_width=18)

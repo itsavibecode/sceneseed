@@ -5,6 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="color-scheme" content="light dark">
 
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js').catch((err) => console.warn('SW registration failed:', err));
+    });
+  }
+</script>
+
 <!-- Perf: warm up TCP/TLS to the third-parties we hit before JS runs. -->
 <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
 <link rel="preconnect" href="https://www.googletagmanager.com">
@@ -13,7 +21,7 @@
 
 <title>Perform — SceneSeed</title>
 <meta name="description" content="Full-screen performer view of incoming suggestions.">
-<meta name="version" content="1.0.0">
+<meta name="version" content="1.1.0">
 <meta name="theme-color" content="#000000">
 <meta name="robots" content="noindex">
 
