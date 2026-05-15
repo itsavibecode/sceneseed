@@ -1,8 +1,8 @@
 # SceneSeed
 
-> Audience suggestion collector for improv shows. Hosts create a show, set a submission window, and share a QR code with the audience. Performers see suggestions stream in live.
+> Audience suggestion collector for improv shows. Hosts create a show, set a submission window, share a QR code with the audience, and watch suggestions stream into a live dashboard. Multiple-round flows, name collection, full-screen performer view, post-show recap with PNG export.
 
-**Live:** [itsavibecode.github.io/sceneseed](https://itsavibecode.github.io/sceneseed/)
+**Live:** [itsavibecode.github.io/sceneseed](https://itsavibecode.github.io/sceneseed/) — **v1.0.0**
 
 ## What it does
 
@@ -74,7 +74,17 @@ firebase deploy --only firestore:rules
 | 0.9.1 | ✅ shipped | OG image PNG (was SVG, unsupported by major platforms); SEO title length fix; prompt template picker in show dialogs |
 | 0.9.2 | ✅ shipped | PageSpeed pass: preconnect / dns-prefetch hints + color-scheme meta on every page |
 | 0.10.0 | ✅ shipped | Multiple rounds per show + live audience updates when host opens a new round |
-| 0.10.1 | next | Polish + bug fixes from live testing |
+| **1.0.0** | **✅ shipped** | **Production milestone: profanity + hate-term filter, version-1 declaration** |
+
+## Post-1.0 ideas
+
+| Idea | Notes |
+|---|---|
+| `sceneseed-worker` (Cloudflare Worker) | Auto-email the CSV recap a few minutes after each show ends — same pattern as `usage-worker` and `stocks-worker` |
+| Server-side profanity enforcement | Currently client-only. Real enforcement needs a Cloud Function or Worker proxy. |
+| Per-round windows | Schedule rounds to auto-open at specific times instead of manual click |
+| Audience submission count display | Show "37 seeds so far" on the audience page (might encourage participation, might encourage duplicates) |
+| Built-in fuzzy dedup | Right now dedup is normalized-exact. Add a fuzzy mode for typo tolerance. |
 | 0.6.0 | | Suggestions dashboard (favorite/hide/used/search/filter) |
 | 0.7.0 | | Full-screen performer view |
 | 0.8.0 | | QR code + ensemble share link with expiry |
@@ -82,6 +92,13 @@ firebase deploy --only firestore:rules
 | 1.0.0 | | Polish, mobile QA, Lighthouse pass |
 
 ## Changelog
+
+### v1.0.0 — 2026-05-08
+- **Production milestone.** All items from the original spec are shipped and live.
+- **Profanity + hate-term filter** lands as the last MVP gap. `profanity.js` exports `checkProfanity(text, { allowProfanity })`. The audience submission page calls it before `submitSuggestion`. Two lists: a plain-text profanity list (controlled by the per-show `profanityFilterEnabled` toggle) and a base64-encoded hate-terms list (always blocked, regardless of toggle). Leetspeak / whitespace deobfuscation handles `5h1t`, `f u c k`, etc.
+- Friendly inline error messages: *"Let's keep it stage-safe — try a cleaner version."* for profanity, *"We don't allow hateful language on the stage. Try a different suggestion."* for hate terms.
+- Filter runs **client-side only** in v1.0.0. A determined attacker could bypass by hitting Firestore directly — accepted trade-off for an improv-show MVP. Server-side enforcement is a Cloud Function project (see post-1.0 ideas).
+- README rewritten to reflect 1.0 status; "next" markers moved to a post-1.0 ideas table.
 
 ### v0.10.0 — 2026-05-08
 - **Multiple Rounds.** Each show can now have multiple prompts (rounds) that the host opens one at a time. Example: Round 1 "Give us a location.", Round 2 "Give us a relationship.", Round 3 "Give us a genre.", Round 4 "Give us a final line of dialogue."

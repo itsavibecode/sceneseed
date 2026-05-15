@@ -12,7 +12,7 @@
 
 <title>Suggest a scene — SceneSeed</title>
 <meta name="description" content="Submit a one-line suggestion to the show.">
-<meta name="version" content="0.10.0">
+<meta name="version" content="1.0.0">
 <meta name="theme-color" content="#0f172a">
 <meta name="robots" content="noindex">
 
@@ -95,6 +95,7 @@ import { doc, onSnapshot } from 'https://www.gstatic.com/firebasejs/12.12.1/fire
 import { db } from '../firebase-config.js';
 import { submitSuggestion } from '../submissions.js';
 import { windowState } from '../shows.js';
+import { checkProfanity } from '../profanity.js';
 
 // Hidden grace: keep the form usable for an extra few seconds AFTER the
 // official close time so a slow audience or laggy network still goes through.
@@ -388,6 +389,20 @@ form.addEventListener('submit', async (e) => {
   if (event.nameCollection === 'required' && !name) {
     setMessage('A first name is required for this show.', 'error');
     nameInput.focus();
+    return;
+  }
+
+  // Profanity / hate-term gate. Hate terms always blocked. Profanity gate
+  // controlled by the show's profanityFilterEnabled toggle.
+  const profCheck = checkProfanity(text, {
+    allowProfanity: event.profanityFilterEnabled === false
+  });
+  if (!profCheck.ok) {
+    const msg = profCheck.reason === 'hate'
+      ? "We don't allow hateful language on the stage. Try a different suggestion."
+      : "Let's keep it stage-safe — try a cleaner version.";
+    setMessage(msg, 'warn');
+    textArea.focus();
     return;
   }
 
