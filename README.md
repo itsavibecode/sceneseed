@@ -77,6 +77,7 @@ firebase deploy --only firestore:rules
 | **1.0.0** | **✅ shipped** | **Production milestone: profanity + hate-term filter, version-1 declaration** |
 | 1.1.0 | ✅ shipped | PWA installability — proper PNG icon set (192/512/maskable), full manifest, cache-first service worker |
 | 1.2.0 | ✅ shipped | Secondary deployment to dev.rizzo.cc/sceneseed via GitHub Action |
+| 1.3.0 | ✅ shipped | One-click PNG download for past shows on the dashboard |
 
 ## Post-1.0 ideas
 
@@ -94,6 +95,10 @@ firebase deploy --only firestore:rules
 | 1.0.0 | | Polish, mobile QA, Lighthouse pass |
 
 ## Changelog
+
+### v1.3.0 — 2026-05-15
+- **One-click PNG download for past shows.** The dashboard's "Past shows" rows already had **Open**, **Summary**, and **Download CSV** — now they also have **Download PNG**. It opens `summary.html?code=<publicCode>&autodownload=1` in a new tab, which reuses the existing html2canvas renderer to drop the same polished summary card you'd get from clicking through manually. No code duplication — the autodownload param just clicks the existing button on load.
+- New tab stays open after the download so you can review what was captured; close it when done.
 
 ### v1.2.0 — 2026-05-08
 - **Secondary deployment to `dev.rizzo.cc/sceneseed`** via a new GitHub Action (`.github/workflows/mirror-to-dev.yml`). On every push to `main`, the workflow rsyncs the static site (minus repo-only files) into the `/sceneseed` folder of `yada-yoda/dev`, sed-rewrites hostname references to `dev.rizzo.cc`, and commits with a generic message. Same pattern the `usage` project uses.
