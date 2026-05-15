@@ -133,13 +133,14 @@ def build_og_image(out_path):
 
     title_h = title_box[3] - title_box[1]
     total_h = title_h + 24 + (sub_box[3] - sub_box[1])
-    title_y = (H - total_h) / 2 - 28
+    # Centered vertically when the URL footer is gone.
+    title_y = (H - total_h) / 2
     d.text((title_x, title_y), title, fill=INK, font=title_font)
     d.text((title_x, title_y + title_h + 24), sub, fill=MUTED, font=sub_font)
 
-    # Footer URL bottom-left
-    url = "itsavibecode.github.io/sceneseed"
-    d.text((120, H - 60), url, fill=FAINT, font=url_font)
+    # No URL footer on the OG image — keeps the same artwork usable across
+    # multiple deployments (e.g. dev.rizzo.cc mirror) without leaking either
+    # origin into the picture itself.
 
     img.save(out_path, 'PNG', optimize=True)
     print(f"wrote {out_path}  ({W}×{H})")

@@ -76,6 +76,7 @@ firebase deploy --only firestore:rules
 | 0.10.0 | ✅ shipped | Multiple rounds per show + live audience updates when host opens a new round |
 | **1.0.0** | **✅ shipped** | **Production milestone: profanity + hate-term filter, version-1 declaration** |
 | 1.1.0 | ✅ shipped | PWA installability — proper PNG icon set (192/512/maskable), full manifest, cache-first service worker |
+| 1.2.0 | ✅ shipped | Secondary deployment to dev.rizzo.cc/sceneseed via GitHub Action |
 
 ## Post-1.0 ideas
 
@@ -93,6 +94,23 @@ firebase deploy --only firestore:rules
 | 1.0.0 | | Polish, mobile QA, Lighthouse pass |
 
 ## Changelog
+
+### v1.2.0 — 2026-05-08
+- **Secondary deployment to `dev.rizzo.cc/sceneseed`** via a new GitHub Action (`.github/workflows/mirror-to-dev.yml`). On every push to `main`, the workflow rsyncs the static site (minus repo-only files) into the `/sceneseed` folder of `yada-yoda/dev`, sed-rewrites hostname references to `dev.rizzo.cc`, and commits with a generic message. Same pattern the `usage` project uses.
+- **OG image** rebuilt without the URL footer so the same PNG works on both deployment origins without leaking either domain into the picture.
+- **One-time setup** required to activate the mirror (see below).
+
+#### Activating the mirror (one-time setup)
+
+The workflow is shipped but won't run until two things are in place:
+
+1. **Fine-grained PAT for the target account.** On the `yada-yoda` account, create a PAT (Settings → Developer settings → Personal access tokens → Fine-grained) scoped to:
+   - **Repository access:** `yada-yoda/dev` only
+   - **Permissions:** Repository → Contents → Read and write
+2. **Add it as a repo secret on `itsavibecode/sceneseed`**: Settings → Secrets and variables → Actions → New repository secret → name `MIRROR_TO_DEV_PAT`, value = the PAT.
+3. **Firebase Auth authorized domains:** Console → Authentication → Settings → Authorized domains → add `dev.rizzo.cc`. Without this, Google sign-in and email-link callbacks break on the mirror.
+
+Once those are done, push anything (or click "Run workflow" on the Actions tab) and the mirror appears at https://dev.rizzo.cc/sceneseed/ within a minute.
 
 ### v1.1.0 — 2026-05-08
 - **PWA installable.** Hosts can now "Add to home screen" on iOS/Android or "Install" on desktop Chrome/Edge. The app opens in a standalone window (no browser chrome), feels like a native app.

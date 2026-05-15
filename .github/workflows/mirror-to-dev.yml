@@ -1,0 +1,99 @@
+# Mirror static files from this repo into the /sceneseed subfolder of a
+# second repo (which serves dev.rizzo.cc). Runs on every push to main.
+#
+# Privacy notes (mirror of the usage repo pattern):
+#   - The target repo is on a separate GitHub account that should NOT be
+#     linkable back to this one in public history. Measures:
+#       1. README.md, .github/, firestore.rules, firebase.json, and
+#          firestore.indexes.json excluded from the copy so source-only
+#          files don't leak.
+#       2. Sed rewrites any remaining itsavibecode.github.io/sceneseed
+#          refs in HTML/JS to dev.rizzo.cc/sceneseed (catches og:url,
+#          twitter:image, source comments).
+#       3. The og-image text was scrubbed at the source level (no URL
+#          footer baked into the PNG) so the same image works on both
+#          deployments.
+#       4. Commit messages on the target repo are generic ("Update
+#          /sceneseed") and never reference the source repo by name.
+#       5. Committer is github-actions[bot], no personal email.
+#
+# Setup (one-time):
+#   1. Create a fine-grained PAT owned by the target account
+#      (yada-yoda) with Contents: Read and Write on yada-yoda/dev only.
+#   2. Add it as a repo secret here named MIRROR_TO_DEV_PAT.
+#   3. Add dev.rizzo.cc to Firebase Authentication → Settings →
+#      Authorized domains so Google sign-in + email-link callbacks
+#      work on the mirror.
+#   4. Push (triggers automatically) or click "Run workflow" on the
+#      Actions tab to mirror on demand.
+
+name: Mirror /sceneseed to secondary deployment
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: # allow manual trigger from Actions tab
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source repo
+        uses: actions/checkout@v4
+        with:
+          path: src
+
+      - name: Checkout target repo
+        uses: actions/checkout@v4
+        with:
+          repository: yada-yoda/dev
+          token: ${{ secrets.MIRROR_TO_DEV_PAT }}
+          path: dst
+
+      - name: Sync static files into dst/sceneseed/
+        run: |
+          # Wipe and re-create so deletions in source propagate.
+          rm -rf dst/sceneseed
+          mkdir -p dst/sceneseed
+          # Copy everything except dev-only / source-specific files.
+          rsync -a \
+            --exclude '.git' \
+            --exclude '.github' \
+            --exclude 'README.md' \
+            --exclude 'firestore.rules' \
+            --exclude 'firestore.indexes.json' \
+            --exclude 'firebase.json' \
+            --exclude 'design' \
+            --exclude '.scripts' \
+            src/ dst/sceneseed/
+
+      - name: Rewrite hardcoded origin refs to dev.rizzo.cc
+        run: |
+          # Defense-in-depth: three passes catching progressively looser
+          # forms of the source-hostname so descriptive prose in comments
+          # can't leak the cross-account relationship either.
+          # Pass 1: full URL with /sceneseed suffix (og:url, twitter:image, etc.)
+          find dst/sceneseed -type f \( -name '*.html' -o -name '*.js' -o -name '*.txt' -o -name '*.xml' -o -name '*.webmanifest' \) -print0 |
+            xargs -0 sed -i 's|https://itsavibecode\.github\.io/sceneseed|https://dev.rizzo.cc/sceneseed|g'
+          # Pass 2: bare full hostname references
+          find dst/sceneseed -type f \( -name '*.html' -o -name '*.js' -o -name '*.txt' -o -name '*.xml' -o -name '*.webmanifest' \) -print0 |
+            xargs -0 sed -i 's|itsavibecode\.github\.io|dev.rizzo.cc|g'
+          # Pass 3: bare-suffix mentions in prose ("the github.io URL...").
+          # Safe because github.io has no legitimate non-hostname usage in
+          # these files — it's always referring to the deployment origin.
+          find dst/sceneseed -type f \( -name '*.html' -o -name '*.js' -o -name '*.txt' -o -name '*.xml' \) -print0 |
+            xargs -0 sed -i 's|github\.io|rizzo.cc|g'
+
+      - name: Commit and push if changed
+        working-directory: dst
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add sceneseed/
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
+          # Intentionally generic — no source-repo name, no app version.
+          git commit -m "Update /sceneseed"
+          git push
